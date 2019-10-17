@@ -1,10 +1,10 @@
 const actions = require('./actions');
-const Organization = require('./models/organization');
+const Application = require('./models/application');
 
 describe('#publish', () => {
   describe('with an object that has already been published', () => {
     test('it returns 409 with a status message', done => {
-      let publishedOrg = new Organization({ tags: ['public'] });
+      let publishedOrg = new Application({ tags: ['public'] });
       actions.publish(publishedOrg).catch(error => {
         expect(error.code).toEqual(409);
         expect(error.message).toEqual('Object already published');
@@ -15,7 +15,7 @@ describe('#publish', () => {
 
   describe('with an object that has not been published', () => {
     test('it adds the public tag and saves it', () => {
-      let newOrg = new Organization({ tags: [] });
+      let newOrg = new Application({ tags: [] });
       actions.publish(newOrg);
       expect(newOrg.tags[0]).toEqual(expect.arrayContaining(['public']));
     });
@@ -33,23 +33,23 @@ test('Testing publish.', () => {
 });
 
 describe('#isPublished', () => {
-  let organization = new Organization({});
+  let application = new Application({});
 
   test('it returns the array of public tags', () => {
-    organization.tags = [['sysadmin'], ['public']];
-    expect(actions.isPublished(organization)).toEqual(expect.arrayContaining(['public']));
+    application.tags = [['sysadmin'], ['public']];
+    expect(actions.isPublished(application)).toEqual(expect.arrayContaining(['public']));
   });
 
   test('it returns undefined if there is no matching public tag', () => {
-    organization.tags = [['sysadmin']];
-    expect(actions.isPublished(organization)).toBeUndefined();
+    application.tags = [['sysadmin']];
+    expect(actions.isPublished(application)).toBeUndefined();
   });
 });
 
 describe('#unpublish', () => {
   describe('with an object that has been published', () => {
     test('it removes the public tag and saves it', () => {
-      let publishedOrg = new Organization({ tags: ['public'] });
+      let publishedOrg = new Application({ tags: ['public'] });
       actions.unPublish(publishedOrg);
       expect(publishedOrg.tags).toHaveLength(0);
     });
@@ -57,7 +57,7 @@ describe('#unpublish', () => {
 
   describe('with an object that is unpublished', () => {
     test('it returns 409 with a status message', done => {
-      let newOrg = new Organization({ tags: [] });
+      let newOrg = new Application({ tags: [] });
       actions.unPublish(newOrg).catch(error => {
         expect(error.code).toEqual(409);
         expect(error.message).toEqual('Object already unpublished');
@@ -69,13 +69,13 @@ describe('#unpublish', () => {
 
 describe('#delete', () => {
   test('it removes the public tag', () => {
-    let publishedOrg = new Organization({ tags: ['public'] });
+    let publishedOrg = new Application({ tags: ['public'] });
     actions.delete(publishedOrg);
     expect(publishedOrg.tags).toHaveLength(0);
   });
 
   test('it soft-deletes the object', () => {
-    let newOrg = new Organization({ tags: [] });
+    let newOrg = new Application({ tags: [] });
     actions.delete(newOrg);
     expect(newOrg.isDeleted).toEqual(true);
   });

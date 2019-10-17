@@ -1,30 +1,27 @@
 'use strict';
 
-var app = require('express')();
-var fs = require('fs');
-var uploadDir = process.env.UPLOAD_DIRECTORY || './uploads/';
-var hostname = process.env.API_HOSTNAME || 'localhost:3000';
-var swaggerTools = require('swagger-tools');
-var YAML = require('yamljs');
-var swaggerConfig = YAML.load('./api/swagger/swagger.yaml');
-var mongoose = require('mongoose');
-var bodyParser = require('body-parser');
+const app = require('express')();
+const fs = require('fs');
+const swaggerTools = require('swagger-tools');
+const YAML = require('yamljs');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 
-// winston logger needs to be created before any local classes (that use the logger) are loaded.
-const winston = require('winston');
-const defaultLog = winston.loggers.add('default', {
-  transports: [new winston.transports.Console({ level: 'silly', handleExceptions: true })]
-});
+const swaggerConfig = YAML.load('./api/swagger/swagger.yaml');
+const uploadDir = process.env.UPLOAD_DIRECTORY || './uploads/';
+const hostname = process.env.API_HOSTNAME || 'localhost:3000';
 
-var auth = require('./api/helpers/auth');
+// winston logger needs to be created before any local classes that use the logger are loaded.
+const defaultLog = require('./api/helpers/logger')('app');
+const auth = require('./api/helpers/auth');
 
-var dbConnection =
+const dbConnection =
   'mongodb://' +
   (process.env.MONGODB_SERVICE_HOST || process.env.DB_1_PORT_27017_TCP_ADDR || 'localhost') +
   '/' +
   (process.env.MONGODB_DATABASE || 'nrts-dev');
-var db_username = process.env.MONGODB_USERNAME || '';
-var db_password = process.env.MONGODB_PASSWORD || '';
+const db_username = process.env.MONGODB_USERNAME || '';
+const db_password = process.env.MONGODB_PASSWORD || '';
 
 // Increase postbody sizing
 app.use(bodyParser.json({ limit: '10mb', extended: true }));
@@ -64,7 +61,7 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
     })
   );
 
-  var routerConfig = {
+  const routerConfig = {
     controllers: './api/controllers',
     useStubs: false
   };
@@ -83,7 +80,7 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
     defaultLog.info("Couldn't create upload folder:", e);
   }
   // Load up DB
-  var options = {
+  const options = {
     user: db_username,
     pass: db_password,
     reconnectTries: Number.MAX_VALUE, // Never stop trying to reconnect
@@ -94,7 +91,8 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
     connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
     socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
     useNewUrlParser: true,
-    useCreateIndex: true
+    useCreateIndex: true,
+    useFindAndModify: false // https://mongoosejs.com/docs/deprecations.html#-findandmodify-
   };
   defaultLog.info('Connecting to:', dbConnection);
   mongoose.Promise = global.Promise;
@@ -104,14 +102,12 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
 
       // Load database models
       defaultLog.info('loading db models.');
-      require('./api/helpers/models/user');
       require('./api/helpers/models/application');
       require('./api/helpers/models/feature');
       require('./api/helpers/models/document');
       require('./api/helpers/models/comment');
       require('./api/helpers/models/commentperiod');
       require('./api/helpers/models/decision');
-      require('./api/helpers/models/review');
       defaultLog.info('db model loading done.');
 
       app.listen(3000, '0.0.0.0', function() {

@@ -25,7 +25,7 @@
           "type": "node",
           "request": "launch",
           "name": "Launch update script using Node",
-          "program": "${workspaceFolder}/seed/shapesMigration/updateShapes.js",
+          "program": "${workspaceFolder}/scripts/updateShapes.js",
           "args": [
             "backend",
             "xxx",

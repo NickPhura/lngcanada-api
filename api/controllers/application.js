@@ -1,9 +1,10 @@
 var _ = require('lodash');
-var defaultLog = require('winston').loggers.get('default');
+var defaultLog = require('../helpers/logger')('application');
 var mongoose = require('mongoose');
 var qs = require('qs');
 var Actions = require('../helpers/actions');
 var Utils = require('../helpers/utils');
+var TTLSUtils = require('../helpers/ttlsUtils');
 var tagList = [
   'agency',
   'areaHectares',
@@ -21,6 +22,7 @@ var tagList = [
   'publishDate',
   'purpose',
   'status',
+  'reason',
   'subpurpose',
   'subtype',
   'tantalisID',
@@ -52,6 +54,7 @@ exports.publicHead = function(args, res, next) {
     try {
       query = addStandardQueryFilters(query, args);
     } catch (error) {
+      defaultLog.error('application publicHead:', error);
       return Actions.sendResponse(res, 400, { error: error.message });
     }
   }
@@ -84,7 +87,7 @@ exports.publicHead = function(args, res, next) {
           }
         })
         .catch(function(err) {
-          defaultLog.error('Error in runDataQuery:', err);
+          defaultLog.error('application publicHead runDataQuery:', err);
           return Actions.sendResponse(res, 400, err);
         });
     },
@@ -115,6 +118,7 @@ exports.publicGet = function(args, res, next) {
     try {
       query = addStandardQueryFilters(query, args);
     } catch (error) {
+      defaultLog.error('application publicGet:', error);
       return Actions.sendResponse(res, 400, { error: error.message });
     }
   }
@@ -141,7 +145,7 @@ exports.publicGet = function(args, res, next) {
           return Actions.sendResponse(res, 200, data);
         })
         .catch(function(err) {
-          defaultLog.error('Error in runDataQuery:', err);
+          defaultLog.error('application publicGet runDataQuery:', err);
           return Actions.sendResponse(res, 400, err);
         });
     },
@@ -152,13 +156,17 @@ exports.publicGet = function(args, res, next) {
 };
 
 exports.protectedGet = function(args, res, next) {
+  var query = {};
+  var sort = {};
   var skip = null;
   var limit = null;
 
-  defaultLog.info('args.swagger.params:', args.swagger.operation['x-security-scopes']);
+  defaultLog.info(
+    'args.swagger.operation.x-security-scopes:',
+    JSON.stringify(args.swagger.operation['x-security-scopes'])
+  );
 
   // Build match query if on appId route
-  var query = {};
   if (args.swagger.params.appId) {
     query = Utils.buildQuery('_id', args.swagger.params.appId.value, query);
   } else {
@@ -167,9 +175,16 @@ exports.protectedGet = function(args, res, next) {
     skip = processedParameters.skip;
     limit = processedParameters.limit;
 
+    if (args.swagger.params.sortBy && args.swagger.params.sortBy.value) {
+      var order_by = args.swagger.params.sortBy.value.charAt(0) == '-' ? -1 : 1;
+      var sort_by = args.swagger.params.sortBy.value.slice(1);
+      sort[sort_by] = order_by;
+    }
+
     try {
       query = addStandardQueryFilters(query, args);
     } catch (error) {
+      defaultLog.error('application protectedGet:', error);
       return Actions.sendResponse(res, 400, { error: error.message });
     }
   }
@@ -187,7 +202,7 @@ exports.protectedGet = function(args, res, next) {
     query,
     getSanitizedFields(args.swagger.params.fields.value), // Fields
     null, // sort warmup
-    null, // sort
+    sort, // sort
     skip, // skip
     limit, // limit
     false
@@ -196,13 +211,16 @@ exports.protectedGet = function(args, res, next) {
       return Actions.sendResponse(res, 200, data);
     })
     .catch(function(err) {
-      defaultLog.error('Error in runDataQuery:', err);
+      defaultLog.error('application protectedGet runDataQuery:', err);
       return Actions.sendResponse(res, 400, err);
     });
 };
 
 exports.protectedHead = function(args, res, next) {
-  defaultLog.info('args.swagger.params:', args.swagger.operation['x-security-scopes']);
+  defaultLog.info(
+    'args.swagger.operation.x-security-scopes:',
+    JSON.stringify(args.swagger.operation['x-security-scopes'])
+  );
 
   // Build match query if on appId route
   var query = {};
@@ -249,7 +267,7 @@ exports.protectedHead = function(args, res, next) {
       }
     })
     .catch(function(err) {
-      defaultLog.error('Error in runDataQuery:', err);
+      defaultLog.error('application protectedHead runDataQuery:', err);
       return Actions.sendResponse(res, 400, err);
     });
 };
@@ -261,7 +279,7 @@ exports.protectedDelete = function(args, res, next) {
   var Application = mongoose.model('Application');
   Application.findOne({ _id: appId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Set the deleted flag.
       Actions.delete(o).then(
@@ -275,7 +293,7 @@ exports.protectedDelete = function(args, res, next) {
         }
       );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -349,6 +367,7 @@ exports.protectedPost = function(args, res, next) {
   delete obj.type;
   delete obj.subtype;
   delete obj.status;
+  delete obj.reason;
   delete obj.tenureStage;
   delete obj.location;
   delete obj.businessUnit;
@@ -365,11 +384,11 @@ exports.protectedPost = function(args, res, next) {
   app.createdDate = Date.now();
   app.save().then(function(savedApp) {
     return new Promise(function(resolve, reject) {
-      return Utils.loginWebADE()
+      return TTLSUtils.loginWebADE()
         .then(function(accessToken) {
           defaultLog.debug('TTLS API Logged in:', accessToken);
           // Disp lookup
-          return Utils.getApplicationByDispositionID(accessToken, savedApp.tantalisID);
+          return TTLSUtils.getApplicationByDispositionID(accessToken, savedApp.tantalisID);
         })
         .then(resolve, reject);
     })
@@ -382,6 +401,7 @@ exports.protectedPost = function(args, res, next) {
         savedApp.type = data.TENURE_TYPE;
         savedApp.subtype = data.TENURE_SUBTYPE;
         savedApp.status = data.TENURE_STATUS;
+        savedApp.reason = data.TENURE_REASON;
         savedApp.tenureStage = data.TENURE_STAGE;
         savedApp.location = data.TENURE_LOCATION;
         savedApp.businessUnit = data.RESPONSIBLE_BUSINESS_UNIT;
@@ -419,7 +439,7 @@ exports.protectedPost = function(args, res, next) {
           });
       })
       .catch(function(err) {
-        defaultLog.error('Error in API:', err);
+        defaultLog.error('application protectedPost:', err);
         return Actions.sendResponse(res, 400, err);
       });
   });
@@ -439,10 +459,10 @@ exports.protectedPut = function(args, res, next) {
   var Application = require('mongoose').model('Application');
   Application.findOneAndUpdate({ _id: objId }, obj, { upsert: false, new: true }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
       return Actions.sendResponse(res, 200, o);
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -456,7 +476,7 @@ exports.protectedPublish = function(args, res, next) {
   var Application = require('mongoose').model('Application');
   Application.findOne({ _id: objId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Go through the feature collection and publish the corresponding features.
       doFeaturePubUnPub('publish', objId)
@@ -471,15 +491,16 @@ exports.protectedPublish = function(args, res, next) {
           },
           function(err) {
             // Error
-            return Actions.sendResponse(res, err.code, err);
+            return Actions.sendResponse(res, null, err);
           }
         );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
 };
+
 exports.protectedUnPublish = function(args, res, next) {
   var objId = args.swagger.params.appId.value;
   defaultLog.info('UnPublish Application:', objId);
@@ -487,7 +508,7 @@ exports.protectedUnPublish = function(args, res, next) {
   var Application = require('mongoose').model('Application');
   Application.findOne({ _id: objId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Go through the feature collection and publish the corresponding features.
       doFeaturePubUnPub('unpublish', objId)
@@ -501,11 +522,37 @@ exports.protectedUnPublish = function(args, res, next) {
           },
           function(err) {
             // Error
-            return Actions.sendResponse(res, err.code, err);
+            return Actions.sendResponse(res, null, err);
           }
         );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
+      return Actions.sendResponse(res, 404, {});
+    }
+  });
+};
+
+// Refreshes an applications meta and features with the latest data from Tantalis.
+exports.protectedRefresh = function(args, res, next) {
+  var objId = args.swagger.params.appId.value;
+  defaultLog.info('Refresh Application, _id:', objId);
+
+  var Application = require('mongoose').model('Application');
+  Application.findOne({ _id: objId }, function(err, applicationObject) {
+    if (applicationObject) {
+      defaultLog.debug('application before refresh:', JSON.stringify(applicationObject));
+
+      TTLSUtils.updateApplication(applicationObject).then(
+        updatedApplicationAndFeatures => {
+          defaultLog.debug('application after refresh:', JSON.stringify(applicationObject));
+          return Actions.sendResponse(res, 200, updatedApplicationAndFeatures);
+        },
+        error => {
+          return Actions.sendResponse(res, null, error);
+        }
+      );
+    } else {
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -662,14 +709,41 @@ var addStandardQueryFilters = function(query, args) {
     }
     _.assignIn(query, { status: { $in: queryArray } });
   }
+  if (args.swagger.params.reason && args.swagger.params.reason.value !== undefined) {
+    var queryString = qs.parse(args.swagger.params.reason.value);
+    var queryArray = [];
+    if (queryString.eq) {
+      if (Array.isArray(queryString.eq)) {
+        queryArray = queryString.eq;
+      } else {
+        queryArray.push(queryString.eq);
+      }
+      _.assignIn(query, { reason: { $in: queryArray } });
+    } else if (queryString.ne) {
+      if (Array.isArray(queryString.ne)) {
+        queryArray = queryString.ne;
+      } else {
+        queryArray.push(queryString.ne);
+      }
+      _.assignIn(query, { reason: { $nin: queryArray } });
+    }
+  }
   if (args.swagger.params.agency && args.swagger.params.agency.value !== undefined) {
     _.assignIn(query, { agency: args.swagger.params.agency.value });
   }
   if (args.swagger.params.businessUnit && args.swagger.params.businessUnit.value !== undefined) {
-    _.assignIn(query, { businessUnit: args.swagger.params.businessUnit.value });
+    _.assignIn(query, { businessUnit: { $eq: args.swagger.params.businessUnit.value.eq } });
   }
   if (args.swagger.params.client && args.swagger.params.client.value !== undefined) {
-    _.assignIn(query, { client: args.swagger.params.client.value });
+    var queryString = qs.parse(args.swagger.params.client.value);
+    if (queryString.text) {
+      // This searches for text indexed fields, which client is currently marked as in the application model.
+      // If more fields are added to the text index, this logic may need to change as it will then search those fields
+      // as well, which may be un-desired. See docs.mongodb.com/manual/reference/operator/query/text/
+      _.assignIn(query, { $text: { $search: queryString.text } });
+    } else if (queryString.eq) {
+      _.assignIn(query, { client: { $eq: queryString.eq } });
+    }
   }
   if (args.swagger.params.tenureStage && args.swagger.params.tenureStage.value !== undefined) {
     _.assignIn(query, { tenureStage: args.swagger.params.tenureStage.value });
@@ -777,6 +851,8 @@ var addStandardQueryFilters = function(query, args) {
       });
     }
   }
+
+  defaultLog.debug('query:', JSON.stringify(query));
 
   return query;
 };

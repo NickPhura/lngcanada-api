@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var defaultLog = require('winston').loggers.get('default');
+var defaultLog = require('../helpers/logger')('decision');
 var mongoose = require('mongoose');
 var Actions = require('../helpers/actions');
 var Utils = require('../helpers/utils');
@@ -42,7 +42,10 @@ exports.publicGet = function(args, res, next) {
 };
 
 exports.protectedHead = function(args, res, next) {
-  defaultLog.info('args.swagger.params:', args.swagger.operation['x-security-scopes']);
+  defaultLog.info(
+    'args.swagger.operation.x-security-scopes:',
+    JSON.stringify(args.swagger.operation['x-security-scopes'])
+  );
 
   // Build match query if on decisionId route
   var query = {};
@@ -82,7 +85,10 @@ exports.protectedHead = function(args, res, next) {
 };
 
 exports.protectedGet = function(args, res, next) {
-  defaultLog.info('args.swagger.params:', args.swagger.operation['x-security-scopes']);
+  defaultLog.info(
+    'args.swagger.operation.x-security-scopes:',
+    JSON.stringify(args.swagger.operation['x-security-scopes'])
+  );
 
   // Build match query if on decisionId route
   var query = {};
@@ -143,10 +149,10 @@ exports.protectedPut = function(args, res, next) {
   var Decision = require('mongoose').model('Decision');
   Decision.findOneAndUpdate({ _id: objId }, obj, { upsert: false, new: true }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
       return Actions.sendResponse(res, 200, o);
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -159,7 +165,7 @@ exports.protectedDelete = function(args, res, next) {
   var decision = require('mongoose').model('Decision');
   decision.findOne({ _id: objId, isDeleted: false }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Set the deleted flag.
       Actions.delete(o).then(
@@ -174,7 +180,7 @@ exports.protectedDelete = function(args, res, next) {
         }
       );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -187,7 +193,7 @@ exports.protectedPublish = function(args, res, next) {
   var decision = require('mongoose').model('Decision');
   decision.findOne({ _id: objId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Add public to the tag of this obj.
       Actions.publish(o).then(
@@ -197,11 +203,11 @@ exports.protectedPublish = function(args, res, next) {
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, err.code, err);
+          return Actions.sendResponse(res, null, err);
         }
       );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -213,7 +219,7 @@ exports.protectedUnPublish = function(args, res, next) {
   var decision = require('mongoose').model('Decision');
   decision.findOne({ _id: objId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Remove public to the tag of this obj.
       Actions.unPublish(o).then(
@@ -223,11 +229,11 @@ exports.protectedUnPublish = function(args, res, next) {
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, err.code, err);
+          return Actions.sendResponse(res, null, err);
         }
       );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });

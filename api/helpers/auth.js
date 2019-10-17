@@ -1,18 +1,19 @@
 'use strict';
 
-var jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
+const defaultLog = require('./logger')('auth');
 
-var ISSUER = process.env.SSO_ISSUER || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc';
-var JWKSURI =
+const ISSUER = process.env.SSO_ISSUER || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc';
+const JWKSURI =
   process.env.SSO_JWKSURI || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc/protocol/openid-connect/certs';
-var JWT_SIGN_EXPIRY = process.env.JWT_SIGN_EXPIRY || '1440'; // 24 hours in minutes.
-var SECRET = process.env.SECRET || 'defaultSecret';
-var KEYCLOAK_ENABLED = process.env.KEYCLOAK_ENABLED || 'true';
-var defaultLog = require('winston').loggers.get('default');
+const JWT_SIGN_EXPIRY = process.env.JWT_SIGN_EXPIRY || '1440'; // 24 hours in minutes.
+const SECRET = process.env.SECRET || 'defaultSecret';
+const KEYCLOAK_ENABLED = process.env.KEYCLOAK_ENABLED || 'true';
 
 exports.verifyToken = function(req, authOrSecDef, token, callback) {
-  defaultLog.info('verifying token', token);
+  defaultLog.info('verifying token');
+  defaultLog.debug('token:', token);
   // scopes/roles defined for the current endpoint
   var currentScopes = req.swagger.operation['x-security-scopes'];
   function sendError() {
@@ -27,7 +28,7 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
     // If Keycloak is enabled, get the JWKSURI and process accordingly.  Else
     // use local environment JWT configuration.
     if (KEYCLOAK_ENABLED === 'true') {
-      defaultLog.info('Keycloak Enabled, remote JWT verification.');
+      defaultLog.debug('Keycloak Enabled, remote JWT verification.');
       const client = jwksClient({
         strictSsl: true, // Default value
         jwksUri: JWKSURI
@@ -46,11 +47,11 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
         }
       });
     } else {
-      defaultLog.info('proceeding with local JWT verification:', tokenString);
+      defaultLog.debug('proceeding with local JWT verification:', tokenString);
       _verifySecret(currentScopes, tokenString, SECRET, req, callback, sendError);
     }
   } else {
-    defaultLog.error("Token didn't have a bearer.");
+    defaultLog.warn("Token didn't have a bearer.");
     return callback(sendError());
   }
 };
@@ -62,19 +63,20 @@ function _verifySecret(currentScopes, tokenString, secret, req, callback, sendEr
 
     // check if the JWT was verified correctly
     if (verificationError == null && Array.isArray(currentScopes) && decodedToken && decodedToken.realm_access.roles) {
-      defaultLog.info('JWT decoded:', decodedToken);
+      defaultLog.info('JWT decoded.');
+      defaultLog.debug('JWT token:', decodedToken);
 
       // check if the role is valid for this endpoint
       var roleMatch = currentScopes.some(r => decodedToken.realm_access.roles.indexOf(r) >= 0);
-      defaultLog.info('currentScopes', currentScopes);
-      defaultLog.info('decodedToken.realm_access.roles', decodedToken.realm_access.roles);
-      defaultLog.info('role match', roleMatch);
+      defaultLog.debug('currentScopes', JSON.stringify(currentScopes));
+      defaultLog.debug('decodedToken.realm_access.roles', decodedToken.realm_access.roles);
+      defaultLog.debug('role match', roleMatch);
 
       // check if the dissuer matches
       var issuerMatch = decodedToken.iss == ISSUER;
-      defaultLog.info('decodedToken.iss', decodedToken.iss);
-      defaultLog.info('ISSUER', ISSUER);
-      defaultLog.info('issuerMatch', issuerMatch);
+      defaultLog.debug('decodedToken.iss', decodedToken.iss);
+      defaultLog.debug('ISSUER', ISSUER);
+      defaultLog.debug('issuerMatch', issuerMatch);
 
       if (roleMatch && issuerMatch) {
         // add the token to the request so that we can access it in the endpoint code if necessary
@@ -87,7 +89,7 @@ function _verifySecret(currentScopes, tokenString, secret, req, callback, sendEr
       }
     } else {
       // return the error in the callback if the JWT was not verified
-      defaultLog.info('JWT Verification Err:', verificationError);
+      defaultLog.warn('JWT Verification Error:', verificationError);
       return callback(sendError());
     }
   });
@@ -126,7 +128,7 @@ exports.issueToken = function(user, deviceId, scopes) {
 var hashPassword = function(user, password) {
   if (user.salt && password) {
     var crypto = require('crypto');
-    return crypto.pbkdf2Sync(password, new Buffer(user.salt, 'base64'), 10000, 64, 'sha1').toString('base64');
+    return crypto.pbkdf2Sync(password, Buffer.from(user.salt, 'base64'), 10000, 64, 'sha1').toString('base64');
   } else {
     return password;
   }

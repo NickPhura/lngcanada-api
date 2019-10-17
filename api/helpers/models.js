@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-const defaultLog = require('winston').loggers.get('default');
+const defaultLog = require('./logger')('models');
 var _ = require('lodash');
 
 /**

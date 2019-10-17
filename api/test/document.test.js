@@ -7,13 +7,15 @@ const applicationFactory = require('./factories/application_factory').factory;
 const decisionFactory = require('./factories/decision_factory').factory;
 const request = require('supertest');
 const shell = require('shelljs');
-
 const _ = require('lodash');
 
 const documentController = require('../controllers/document.js');
 require('../helpers/models/document');
-
 const Document = mongoose.model('Document');
+
+/*************************************
+  Mock Route Handlers + Helper Methods
+*************************************/
 
 const fieldNames = ['displayName', 'documentFileName'];
 const idirUsername = 'idir/i_am_a_bot';
@@ -87,6 +89,10 @@ app.delete('/api/document/:id', function(req, res) {
   return documentController.protectedDelete(paramsWithDocId(req), res);
 });
 
+/*************************************
+  General Test Data + Helper Methods
+*************************************/
+
 const documentsData = [
   {
     displayName: 'Special File',
@@ -117,6 +123,10 @@ function cleanupTestDocumentFiles() {
     shell.rm('./api/test/uploads/*.txt');
   }
 }
+
+/*************************************
+  Tests
+*************************************/
 
 afterAll(() => {
   cleanupTestDocumentFiles();
@@ -431,9 +441,9 @@ describe('POST /document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).toBeDefined();
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).toBeDefined();
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document.displayName).toBe('Critically Important File');
           done();
@@ -448,8 +458,8 @@ describe('POST /document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document._application.toString()).toBe(applicationId);
           expect(document._comment.toString()).toBe(commentId);
@@ -466,8 +476,8 @@ describe('POST /document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document.internalMime).toBe('text/plain');
 
@@ -487,8 +497,8 @@ describe('POST /document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document._addedBy).not.toBeNull();
           expect(document._addedBy).toEqual(idirUsername);
@@ -646,9 +656,9 @@ describe('POST /public/document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).toBeDefined();
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).toBeDefined();
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document.displayName).toBe('Critically Important File');
           done();
@@ -663,8 +673,8 @@ describe('POST /public/document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document._application.toString()).toBe(applicationId);
           expect(document._comment.toString()).toBe(commentId);
@@ -681,8 +691,8 @@ describe('POST /public/document', () => {
       .send(documentParams)
       .expect(200)
       .then(response => {
-        expect(response.body.id).not.toBeNull();
-        Document.findById(response.body.id).exec(function(error, document) {
+        expect(response.body._id).not.toBeNull();
+        Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
           expect(document.internalMime).toBe('text/plain');
 

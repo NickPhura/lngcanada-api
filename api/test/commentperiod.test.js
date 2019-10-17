@@ -13,6 +13,10 @@ require('../helpers/models/application');
 const Application = mongoose.model('Application');
 const CommentPeriod = mongoose.model('CommentPeriod');
 
+/*************************************
+  Mock Route Handlers + Helper Methods
+*************************************/
+
 const idirUsername = 'idir/i_am_a_bot';
 
 function paramsWithCommentPerId(req) {
@@ -66,16 +70,21 @@ app.put('/api/commentperiod/:id/unpublish', function(req, res) {
 app.delete('/api/commentperiod/:id', function(req, res) {
   return commentPeriodController.protectedDelete(paramsWithCommentPerId(req), res);
 });
+
+/*************************************
+  General Test Data + Helper Methods
+*************************************/
+
 const specialApplication = new Application();
 const vanillaApplication = new Application();
 const confidentialApplication = new Application();
 const deletedApplication = new Application();
 
 const commentPeriodsData = [
-  { name: 'Special Comment', _application: specialApplication.id, tags: [['public'], ['sysadmin']], isDeleted: false },
-  { name: 'Vanilla Ice Cream', _application: vanillaApplication.id, tags: [['public']], isDeleted: false },
-  { name: 'Confidential Comment', _application: confidentialApplication.id, tags: [['sysadmin']], isDeleted: false },
-  { name: 'Deleted Comment', _application: deletedApplication.id, tags: [['public'], ['sysadmin']], isDeleted: true }
+  { name: 'Special Comment', _application: specialApplication._id, tags: [['public'], ['sysadmin']], isDeleted: false },
+  { name: 'Vanilla Ice Cream', _application: vanillaApplication._id, tags: [['public']], isDeleted: false },
+  { name: 'Confidential Comment', _application: confidentialApplication._id, tags: [['sysadmin']], isDeleted: false },
+  { name: 'Deleted Comment', _application: deletedApplication._id, tags: [['public'], ['sysadmin']], isDeleted: true }
 ];
 
 function setupCommentPeriods(commentPeriodsData) {
@@ -91,6 +100,10 @@ function setupCommentPeriods(commentPeriodsData) {
   });
 }
 
+/*************************************
+  Tests
+*************************************/
+
 describe('GET /commentperiod', () => {
   test('returns a list of non-deleted, public and sysadmin comment periods', done => {
     setupCommentPeriods(commentPeriodsData).then(documents => {
@@ -102,17 +115,17 @@ describe('GET /commentperiod', () => {
 
           let firstCommentPeriod = _.find(response.body, { name: 'Special Comment' });
           expect(firstCommentPeriod).toHaveProperty('_id');
-          expect(firstCommentPeriod._application).toBe(specialApplication.id);
+          expect(firstCommentPeriod._application).toBe(specialApplication._id.toString());
           expect(firstCommentPeriod['tags']).toEqual(expect.arrayContaining([['public'], ['sysadmin']]));
 
           let secondCommentPeriod = _.find(response.body, { name: 'Vanilla Ice Cream' });
           expect(secondCommentPeriod).toHaveProperty('_id');
-          expect(secondCommentPeriod._application).toBe(vanillaApplication.id);
+          expect(secondCommentPeriod._application).toBe(vanillaApplication._id.toString());
           expect(secondCommentPeriod['tags']).toEqual(expect.arrayContaining([['public']]));
 
           let secretCommentPeriod = _.find(response.body, { name: 'Confidential Comment' });
           expect(secretCommentPeriod).toHaveProperty('_id');
-          expect(secretCommentPeriod._application).toBe(confidentialApplication.id);
+          expect(secretCommentPeriod._application).toBe(confidentialApplication._id.toString());
           expect(secretCommentPeriod['tags']).toEqual(expect.arrayContaining([['sysadmin']]));
           done();
         });
@@ -122,13 +135,13 @@ describe('GET /commentperiod', () => {
   test('can search based on application', done => {
     applicationFactory.create('application', { name: 'Detailed application with comment period' }).then(application => {
       let commentPeriodAttrs = {
-        _application: application.id,
+        _application: application._id,
         name: 'Controversial Comment Period'
       };
       commentPeriodFactory.create('commentperiod', commentPeriodAttrs, { public: false }).then(commentperiod => {
         request(app)
           .get('/api/commentperiod')
-          .query({ _application: application.id })
+          .query({ _application: application._id })
           .expect(200)
           .then(response => {
             expect(response.body.length).toBe(1);
@@ -189,12 +202,12 @@ describe('GET /public/commentperiod', () => {
 
           let firstCommentPeriod = _.find(response.body, { name: 'Special Comment' });
           expect(firstCommentPeriod).toHaveProperty('_id');
-          expect(firstCommentPeriod._application).toBe(specialApplication.id);
+          expect(firstCommentPeriod._application).toBe(specialApplication._id.toString());
           expect(firstCommentPeriod['tags']).toEqual(expect.arrayContaining([['public'], ['sysadmin']]));
 
           let secondCommentPeriod = _.find(response.body, { name: 'Vanilla Ice Cream' });
           expect(secondCommentPeriod).toHaveProperty('_id');
-          expect(secondCommentPeriod._application).toBe(vanillaApplication.id);
+          expect(secondCommentPeriod._application).toBe(vanillaApplication._id.toString());
           expect(secondCommentPeriod['tags']).toEqual(expect.arrayContaining([['public']]));
           done();
         });
@@ -243,13 +256,13 @@ describe('GET /public/commentperiod/{id}', () => {
   test('can search based on application', done => {
     applicationFactory.create('application', { name: 'Detailed application with comment period' }).then(application => {
       let commentPeriodAttrs = {
-        _application: application.id,
+        _application: application._id,
         name: 'Controversial Comment Period'
       };
       commentPeriodFactory.create('commentperiod', commentPeriodAttrs, { public: true }).then(commentperiod => {
         request(app)
           .get('/api/public/commentperiod')
-          .query({ _application: application.id })
+          .query({ _application: application._id })
           .expect(200)
           .then(response => {
             expect(response.body.length).toBe(1);
@@ -305,7 +318,7 @@ describe('POST /commentperiod', () => {
       });
   });
 
-  test('defaults to sysadmin for tags and review tags', done => {
+  test('defaults to sysadmin for tags', done => {
     let commentObj = {
       name: 'Victoria',
       description: 'Victoria is a great place'

@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var defaultLog = require('winston').loggers.get('default');
+var defaultLog = require('../helpers/logger')('feature');
 var mongoose = require('mongoose');
 var Actions = require('../helpers/actions');
 var Utils = require('../helpers/utils');
@@ -25,7 +25,7 @@ exports.publicGet = function(args, res, next) {
           }
         };
       } catch (err) {
-        defaultLog.info('Parsing Error:', err);
+        defaultLog.error('feature publicGet:', err);
         return Actions.sendResponse(res, 400, err);
       }
     }
@@ -43,7 +43,10 @@ exports.publicGet = function(args, res, next) {
   });
 };
 exports.protectedGet = function(args, res, next) {
-  defaultLog.info('args.swagger.params:', args.swagger.operation['x-security-scopes']);
+  defaultLog.info(
+    'args.swagger.operation.x-security-scopes:',
+    JSON.stringify(args.swagger.operation['x-security-scopes'])
+  );
 
   var query = {};
   // Build match query if on featureId route
@@ -61,7 +64,7 @@ exports.protectedGet = function(args, res, next) {
           }
         };
       } catch (err) {
-        defaultLog.info('Parsing Error:', err);
+        defaultLog.error('feature protectedGet:', err);
         return Actions.sendResponse(res, 400, err);
       }
     }
@@ -88,7 +91,10 @@ exports.protectedGet = function(args, res, next) {
 
 exports.protectedDelete = function(args, res, next) {
   defaultLog.info('Deleting a Feature(s)');
-  defaultLog.info('args.swagger.params:', args.swagger.operation['x-security-scopes']);
+  defaultLog.info(
+    'args.swagger.operation.x-security-scopes:',
+    JSON.stringify(args.swagger.operation['x-security-scopes'])
+  );
 
   var Feature = mongoose.model('Feature');
   var query = {};
@@ -143,10 +149,10 @@ exports.protectedPut = function(args, res, next) {
   var Feature = require('mongoose').model('Feature');
   Feature.findOneAndUpdate({ _id: objId }, obj, { upsert: false, new: true }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
       return Actions.sendResponse(res, 200, o);
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -160,7 +166,7 @@ exports.protectedPublish = function(args, res, next) {
   var Feature = require('mongoose').model('Feature');
   Feature.findOne({ _id: objId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Add public to the tag of this obj.
       Actions.publish(o).then(
@@ -170,11 +176,11 @@ exports.protectedPublish = function(args, res, next) {
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, err.code, err);
+          return Actions.sendResponse(res, null, err);
         }
       );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -186,7 +192,7 @@ exports.protectedUnPublish = function(args, res, next) {
   var Feature = require('mongoose').model('Feature');
   Feature.findOne({ _id: objId }, function(err, o) {
     if (o) {
-      defaultLog.info('o:', o);
+      defaultLog.debug('o:', JSON.stringify(o));
 
       // Remove public to the tag of this obj.
       Actions.unPublish(o).then(
@@ -196,11 +202,11 @@ exports.protectedUnPublish = function(args, res, next) {
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, err.code, err);
+          return Actions.sendResponse(res, null, err);
         }
       );
     } else {
-      defaultLog.info("Couldn't find that object!");
+      defaultLog.warn("Couldn't find that object!");
       return Actions.sendResponse(res, 404, {});
     }
   });
@@ -218,9 +224,7 @@ var getFeatures = function(role, query, fields) {
 
     // Add requested fields - sanitize first by including only those that we can/want to return
     var sanitizedFields = _.remove(fields, function(f) {
-      return (
-        _.indexOf(['type', 'tags', 'geometry', 'geometryName', 'properties', 'isDeleted', 'applicationID'], f) !== -1
-      );
+      return _.indexOf(['type', 'tags', 'geometry', 'properties', 'isDeleted', 'applicationID'], f) !== -1;
     });
     _.each(sanitizedFields, function(f) {
       projection[f] = 1;

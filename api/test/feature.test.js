@@ -11,6 +11,10 @@ require('../helpers/models/feature');
 require('../helpers/models/application');
 const Feature = mongoose.model('Feature');
 
+/*************************************
+  Mock Route Handlers + Helper Methods
+*************************************/
+
 const fieldNames = ['tags', 'properties', 'applicationID'];
 
 function paramsWithFeatureId(req) {
@@ -86,6 +90,10 @@ app.put('/api/feature/:id/publish', function(req, res) {
 app.put('/api/feature/:id/unpublish', function(req, res) {
   return featureController.protectedUnPublish(paramsWithFeatureId(req), res);
 });
+
+/*************************************
+  General Test Data + Helper Methods
+*************************************/
 
 const applicationsData = [
   { name: 'Special Application', tags: [['public'], ['sysadmin']], isDeleted: false },
@@ -167,6 +175,10 @@ function buildFeaturesData() {
     }
   ];
 }
+
+/*************************************
+  Tests
+*************************************/
 
 beforeEach(done => {
   setupApplications(applicationsData).then(applicationsArray => {

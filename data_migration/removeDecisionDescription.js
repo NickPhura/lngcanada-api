@@ -1,12 +1,13 @@
-// database migration script
-// deletes description field from Decision collection
-// run this any time after description was removed: PRC-1029-2 for api/public AND PRC-1029 for admin
-// is safe to run multiple times
-// NOTE: code below requires MongoDB 3.4
-
-// steps:
-// 1. open Robo 3T
-// 2. paste the following in a shell
-// 3. press F5 to execute
+/**
+ * Database Migration Script
+ *
+ * Deletes the description field from the Decision collection.
+ * Why? The business doesn't use or want this field, as they only ever say "see attached Documents" anyways.
+ *
+ * Note:
+ *  - Safe to run multiple times.
+ *  - Requires MongoDB 3.4+
+ *  - Run this any time after description was removed: PRC-1029-2 for api/public AND PRC-1029 for admin
+ */
 
 db.decisions.updateMany({}, { $unset: { description: 1 } });
