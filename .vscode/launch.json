@@ -4,38 +4,11 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        // {
-        //     "type": "node",
-        //     "request": "launch",
-        //     "name": "Launch API using NPM",
-        //     "runtimeExecutable": "npm",
-        //     "runtimeArgs": [
-        //         // "debug",
-        //         "run-script"
-        //     ],
-        //     "port": 9229
-        // },
         {
             "type": "node",
             "request": "launch",
             "name": "Launch API using Node",
             "program": "${workspaceFolder}/app.js"
-        },
-        {
-          "type": "node",
-          "request": "launch",
-          "name": "Launch update script using Node",
-          "program": "${workspaceFolder}/scripts/updateShapes.js",
-          "args": [
-            "backend",
-            "xxx",
-            "http",
-            "localhost",
-            "3000",
-            "prc-admin-console",
-            "password",
-            "https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc/protocol/openid-connect/token"
-          ]
-      }
+        }
   ]
 }
