@@ -8,7 +8,6 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const swaggerConfig = YAML.load('./api/swagger/swagger.yaml');
 
-// winston logger needs to be created before any local classes that use the logger are loaded.
 const defaultLog = require('./api/utils/logger')('app');
 const authUtils = require('./api/utils/authUtils');
 
@@ -101,14 +100,12 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
 
   mongoose.connect(encodeURI(DB_CONNECTION), mongooseDBConfig).then(
     () => {
-      defaultLog.info('Database connected successfully.');
+      defaultLog.info('Database connected');
+
+      defaultLog.info('Loading database models');
 
       // Load database models
-      defaultLog.info('Loading database models.');
-
       require('./api/models/document');
-
-      defaultLog.info('Database models loaded successfully');
 
       // Start application
       app.listen(3000, '0.0.0.0', function() {

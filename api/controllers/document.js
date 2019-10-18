@@ -1,4 +1,4 @@
-var defaultLog = require('../utils/logger')('document');
+'use strict';
 
 var _ = require('lodash');
 var mongoose = require('mongoose');
@@ -10,6 +10,8 @@ var FlakeIdGen = require('flake-idgen'),
   intformat = require('biguint-format'),
   generator = new FlakeIdGen();
 var fs = require('fs');
+
+var defaultLog = require('../utils/logger')('document');
 
 var UPLOAD_DIR = process.env.UPLOAD_DIRECTORY || './uploads/';
 var ENABLE_VIRUS_SCANNING = process.env.ENABLE_VIRUS_SCANNING || false;
@@ -78,7 +80,7 @@ exports.unProtectedPost = function(args, res, next) {
       })
       .then(function(valid) {
         if (!valid) {
-          defaultLog.warn('File failed virus check.');
+          defaultLog.warn('File failed virus check');
           return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
           fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
@@ -304,7 +306,7 @@ exports.protectedPost = function(args, res, next) {
       })
       .then(function(valid) {
         if (!valid) {
-          defaultLog.warn('File failed virus check.');
+          defaultLog.warn('File failed virus check');
           return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
           fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
@@ -440,7 +442,7 @@ exports.protectedPut = function(args, res, next) {
       })
       .then(function(valid) {
         if (!valid) {
-          defaultLog.warn('File failed virus check.');
+          defaultLog.warn('File failed virus check');
           return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
           fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);

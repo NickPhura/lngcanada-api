@@ -1,9 +1,9 @@
 'use strict';
 
-const defaultLog = require('./logger')('authUtils');
-
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
+
+const defaultLog = require('./logger')('authUtils');
 
 const SSO_ISSUER = process.env.SSO_ISSUER || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc';
 const SSO_JWKSURI =
@@ -11,22 +11,32 @@ const SSO_JWKSURI =
 const JWT_SIGN_EXPIRY = process.env.JWT_SIGN_EXPIRY || '1440'; // 24 hours in minutes.
 const SECRET = process.env.SECRET || 'defaultSecret';
 
+/**
+ *
+ *
+ * @param {*} req
+ * @param {*} authOrSecDef
+ * @param {*} token
+ * @param {*} callback
+ * @returns
+ */
 exports.verifyToken = function(req, authOrSecDef, token, callback) {
   defaultLog.info('verifying token');
   defaultLog.debug('token:', token);
+
   // scopes/roles defined for the current endpoint
   var currentScopes = req.swagger.operation['x-security-scopes'];
   function sendError() {
     return req.res.status(403).json({ message: 'Error: Access Denied' });
   }
 
-  // validate the 'Authorization' header. it should have the following format:
-  //'Bearer tokenString'
+  // validate the 'Authorization' header. it should have the following format: `Bearer tokenString`
   if (token && token.indexOf('Bearer ') == 0) {
     var tokenString = token.split(' ')[1];
 
+    defaultLog.debug('Remote JWT verification');
+
     // Get the SSO_JWKSURI and process accordingly.
-    defaultLog.debug('Remote JWT verification.');
     const client = jwksClient({
       strictSsl: true, // Default value
       jwksUri: SSO_JWKSURI
@@ -40,7 +50,6 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
         callback(sendError());
       } else {
         const signingKey = key.publicKey || key.rsaPublicKey;
-
         verifySecret(currentScopes, tokenString, signingKey, req, callback, sendError);
       }
     });
@@ -50,17 +59,28 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
   }
 };
 
+/**
+ *
+ *
+ * @param {*} user
+ * @param {*} deviceId
+ * @param {*} scopes
+ * @returns
+ */
 exports.issueToken = function(user, deviceId, scopes) {
-  defaultLog.info('user:', user);
-  defaultLog.info('deviceId:', deviceId);
-  defaultLog.info('scopes:', scopes);
+  defaultLog.debug('Issuing new token');
+  defaultLog.debug('user:', user);
+  defaultLog.debug('deviceId:', deviceId);
+  defaultLog.debug('scopes:', scopes);
+
   var crypto = require('crypto');
   var randomString = crypto.randomBytes(32).toString('hex');
   var jti = crypto
     .createHash('sha256')
     .update(user.username + deviceId + randomString)
     .digest('hex');
-  defaultLog.info('JTI:', jti);
+
+  defaultLog.debug('JTI:', jti);
 
   var payload = {
     name: user.username,
@@ -75,91 +95,52 @@ exports.issueToken = function(user, deviceId, scopes) {
   };
 
   var token = jwt.sign(payload, SECRET, { expiresIn: JWT_SIGN_EXPIRY + 'm' });
-  defaultLog.info('ISSUING NEW TOKEN:expiresIn:', JWT_SIGN_EXPIRY + 'm');
+  defaultLog.info('Issued new token - expires in:', JWT_SIGN_EXPIRY + 'm');
 
   return token;
 };
 
-var hashPassword = function(user, password) {
-  if (user.salt && password) {
-    var crypto = require('crypto');
-    return crypto.pbkdf2Sync(password, Buffer.from(user.salt, 'base64'), 10000, 64, 'sha1').toString('base64');
-  } else {
-    return password;
-  }
-};
-
-exports.setPassword = function(user) {
-  var bcrypt = require('bcrypt-nodejs');
-  user.salt = bcrypt.genSaltSync(16);
-  user.password = hashPassword(user, user.password);
-  return user;
-};
 /**
- * Create instance method for authenticating user
+ *
+ *
+ * @param {*} currentScopes
+ * @param {*} tokenString
+ * @param {*} secret
+ * @param {*} req
+ * @param {*} callback
+ * @param {*} sendError
  */
-var authenticate = function(user, password) {
-  defaultLog.info('HASH:', hashPassword(user, password));
-  defaultLog.info('user.password:', user.password);
-  return user.password === hashPassword(user, password);
-};
-
-exports.checkAuthentication = function(username, password, cb) {
-  defaultLog.info('authStrategy loading');
-  var User = require('mongoose').model('User');
-
-  // Look this user up in the db and hash their password to see if it's correct.
-  User.findOne(
-    {
-      username: username.toLowerCase()
-    },
-    function(err, user) {
-      if (err) {
-        defaultLog.info('ERR:', err);
-        return cb(err);
-      }
-      defaultLog.info('continuing');
-      if (!user || !authenticate(user, password)) {
-        defaultLog.info('bad username or password!');
-        return cb(null, false, {
-          message: 'Invalid username or password'
-        });
-      }
-      defaultLog.info('YAY');
-      return cb(null, user);
-    }
-  );
-};
-
 function verifySecret(currentScopes, tokenString, secret, req, callback, sendError) {
   jwt.verify(tokenString, secret, function(verificationError, decodedToken) {
-    // defaultLog.info("verificationError:", verificationError);
-    // defaultLog.info("decodedToken:", decodedToken);
-
     // check if the JWT was verified correctly
     if (verificationError == null && Array.isArray(currentScopes) && decodedToken && decodedToken.realm_access.roles) {
-      defaultLog.info('JWT decoded.');
-      defaultLog.debug('JWT token:', decodedToken);
+      defaultLog.info('JWT decoded');
+
+      defaultLog.debug('currentScopes', JSON.stringify(currentScopes));
+      defaultLog.debug('decoded token:', decodedToken);
+
+      defaultLog.debug('decodedToken.iss', decodedToken.iss);
+      defaultLog.debug('decodedToken.realm_access.roles', decodedToken.realm_access.roles);
+
+      defaultLog.debug('SSO_ISSUER', SSO_ISSUER);
 
       // check if the role is valid for this endpoint
       var roleMatch = currentScopes.some(r => decodedToken.realm_access.roles.indexOf(r) >= 0);
-      defaultLog.debug('currentScopes', JSON.stringify(currentScopes));
-      defaultLog.debug('decodedToken.realm_access.roles', decodedToken.realm_access.roles);
+
       defaultLog.debug('role match', roleMatch);
 
       // check if the dissuer matches
       var issuerMatch = decodedToken.iss == SSO_ISSUER;
-      defaultLog.debug('decodedToken.iss', decodedToken.iss);
-      defaultLog.debug('SSO_ISSUER', SSO_ISSUER);
+
       defaultLog.debug('issuerMatch', issuerMatch);
 
       if (roleMatch && issuerMatch) {
         // add the token to the request so that we can access it in the endpoint code if necessary
         req.swagger.params.auth_payload = decodedToken;
-        defaultLog.info('JWT Verified.');
+        defaultLog.info('JWT Verified');
         return callback(null);
       } else {
-        defaultLog.info('JWT Role/Issuer mismatch.');
+        defaultLog.info('JWT Role/Issuer mismatch');
         return callback(sendError());
       }
     } else {

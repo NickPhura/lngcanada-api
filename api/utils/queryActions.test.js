@@ -22,7 +22,7 @@ describe('#publish', () => {
   });
 });
 
-test('Testing publish.', () => {
+test('Testing publish', () => {
   var o = {};
   o.tags = [['sysadmin']];
 

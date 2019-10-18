@@ -1,7 +1,9 @@
-const defaultLog = require('./logger')('modelSchemaGenerator');
+'use strict';
 
 var mongoose = require('mongoose');
 var _ = require('lodash');
+
+const defaultLog = require('./logger')('modelSchemaGenerator');
 
 /**
  * Generates the mongoose model schema for the given definition.

@@ -1,8 +1,15 @@
 'use strict';
-const defaultLog = require('./logger')('queryActions');
 
 const _ = require('lodash');
 
+const defaultLog = require('./logger')('queryActions');
+
+/**
+ *
+ *
+ * @param {*} o
+ * @returns
+ */
 exports.publish = function(o) {
   return new Promise(function(resolve, reject) {
     var exists = _.find(o.tags, function(item) {
@@ -26,12 +33,24 @@ exports.publish = function(o) {
   });
 };
 
+/**
+ *
+ *
+ * @param {*} o
+ * @returns
+ */
 exports.isPublished = function(o) {
   return _.find(o.tags, function(item) {
     return _.isEqual(item, ['public']);
   });
 };
 
+/**
+ *
+ *
+ * @param {*} o
+ * @returns
+ */
 exports.unPublish = function(o) {
   return new Promise(function(resolve, reject) {
     var exists = _.remove(o.tags, function(item) {
@@ -54,6 +73,12 @@ exports.unPublish = function(o) {
   });
 };
 
+/**
+ *
+ *
+ * @param {*} o
+ * @returns
+ */
 exports.delete = function(o) {
   return new Promise(function(resolve, reject) {
     _.remove(o.tags, function(item) {

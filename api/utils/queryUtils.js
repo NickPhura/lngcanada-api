@@ -10,22 +10,37 @@ var mongoose = require('mongoose');
 var MAX_LIMIT = 1000;
 var DEFAULT_PAGESIZE = 100;
 
+/**
+ *
+ *
+ * @param {*} property
+ * @param {*} values
+ * @param {*} query
+ * @returns
+ */
 exports.buildQuery = function(property, values, query) {
-  var oids = [];
+  var objectIDs = [];
   if (_.isArray(values)) {
     _.each(values, function(i) {
-      oids.push(mongoose.Types.ObjectId(i));
+      objectIDs.push(mongoose.Types.ObjectId(i));
     });
   } else {
-    oids.push(mongoose.Types.ObjectId(values));
+    objectIDs.push(mongoose.Types.ObjectId(values));
   }
   return _.assignIn(query, {
     [property]: {
-      $in: oids
+      $in: objectIDs
     }
   });
 };
 
+/**
+ *
+ *
+ * @param {*} pageSize
+ * @param {*} pageNum
+ * @returns
+ */
 exports.getSkipLimitParameters = function(pageSize, pageNum) {
   const params = {};
 
@@ -44,6 +59,21 @@ exports.getSkipLimitParameters = function(pageSize, pageNum) {
   return params;
 };
 
+/**
+ *
+ *
+ * @param {*} modelType
+ * @param {*} role
+ * @param {*} query
+ * @param {*} fields
+ * @param {*} sortWarmUp
+ * @param {*} sort
+ * @param {*} skip
+ * @param {*} limit
+ * @param {*} count
+ * @param {*} preQueryPipelineSteps
+ * @returns
+ */
 exports.runDataQuery = function(
   modelType,
   role,
