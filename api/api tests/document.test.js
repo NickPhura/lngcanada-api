@@ -10,7 +10,7 @@ const shell = require('shelljs');
 const _ = require('lodash');
 
 const documentController = require('../controllers/document.js');
-require('../helpers/models/document');
+require('../models/document');
 const Document = mongoose.model('Document');
 
 /*************************************

@@ -1,15 +1,15 @@
 'use strict';
 
+const defaultLog = require('./logger')('authUtils');
+
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const defaultLog = require('./logger')('auth');
 
-const ISSUER = process.env.SSO_ISSUER || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc';
-const JWKSURI =
+const SSO_ISSUER = process.env.SSO_ISSUER || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc';
+const SSO_JWKSURI =
   process.env.SSO_JWKSURI || 'https://sso-dev.pathfinder.gov.bc.ca/auth/realms/prc/protocol/openid-connect/certs';
 const JWT_SIGN_EXPIRY = process.env.JWT_SIGN_EXPIRY || '1440'; // 24 hours in minutes.
 const SECRET = process.env.SECRET || 'defaultSecret';
-const KEYCLOAK_ENABLED = process.env.KEYCLOAK_ENABLED || 'true';
 
 exports.verifyToken = function(req, authOrSecDef, token, callback) {
   defaultLog.info('verifying token');
@@ -25,75 +25,30 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
   if (token && token.indexOf('Bearer ') == 0) {
     var tokenString = token.split(' ')[1];
 
-    // If Keycloak is enabled, get the JWKSURI and process accordingly.  Else
-    // use local environment JWT configuration.
-    if (KEYCLOAK_ENABLED === 'true') {
-      defaultLog.debug('Keycloak Enabled, remote JWT verification.');
-      const client = jwksClient({
-        strictSsl: true, // Default value
-        jwksUri: JWKSURI
-      });
+    // Get the SSO_JWKSURI and process accordingly.
+    defaultLog.debug('Remote JWT verification.');
+    const client = jwksClient({
+      strictSsl: true, // Default value
+      jwksUri: SSO_JWKSURI
+    });
 
-      const kid = jwt.decode(tokenString, { complete: true }).header.kid;
+    const kid = jwt.decode(tokenString, { complete: true }).header.kid;
 
-      client.getSigningKey(kid, (err, key) => {
-        if (err) {
-          defaultLog.error('Signing Key Error:', err);
-          callback(sendError());
-        } else {
-          const signingKey = key.publicKey || key.rsaPublicKey;
+    client.getSigningKey(kid, (err, key) => {
+      if (err) {
+        defaultLog.error('Signing Key Error:', err);
+        callback(sendError());
+      } else {
+        const signingKey = key.publicKey || key.rsaPublicKey;
 
-          _verifySecret(currentScopes, tokenString, signingKey, req, callback, sendError);
-        }
-      });
-    } else {
-      defaultLog.debug('proceeding with local JWT verification:', tokenString);
-      _verifySecret(currentScopes, tokenString, SECRET, req, callback, sendError);
-    }
+        verifySecret(currentScopes, tokenString, signingKey, req, callback, sendError);
+      }
+    });
   } else {
     defaultLog.warn("Token didn't have a bearer.");
     return callback(sendError());
   }
 };
-
-function _verifySecret(currentScopes, tokenString, secret, req, callback, sendError) {
-  jwt.verify(tokenString, secret, function(verificationError, decodedToken) {
-    // defaultLog.info("verificationError:", verificationError);
-    // defaultLog.info("decodedToken:", decodedToken);
-
-    // check if the JWT was verified correctly
-    if (verificationError == null && Array.isArray(currentScopes) && decodedToken && decodedToken.realm_access.roles) {
-      defaultLog.info('JWT decoded.');
-      defaultLog.debug('JWT token:', decodedToken);
-
-      // check if the role is valid for this endpoint
-      var roleMatch = currentScopes.some(r => decodedToken.realm_access.roles.indexOf(r) >= 0);
-      defaultLog.debug('currentScopes', JSON.stringify(currentScopes));
-      defaultLog.debug('decodedToken.realm_access.roles', decodedToken.realm_access.roles);
-      defaultLog.debug('role match', roleMatch);
-
-      // check if the dissuer matches
-      var issuerMatch = decodedToken.iss == ISSUER;
-      defaultLog.debug('decodedToken.iss', decodedToken.iss);
-      defaultLog.debug('ISSUER', ISSUER);
-      defaultLog.debug('issuerMatch', issuerMatch);
-
-      if (roleMatch && issuerMatch) {
-        // add the token to the request so that we can access it in the endpoint code if necessary
-        req.swagger.params.auth_payload = decodedToken;
-        defaultLog.info('JWT Verified.');
-        return callback(null);
-      } else {
-        defaultLog.info('JWT Role/Issuer mismatch.');
-        return callback(sendError());
-      }
-    } else {
-      // return the error in the callback if the JWT was not verified
-      defaultLog.warn('JWT Verification Error:', verificationError);
-      return callback(sendError());
-    }
-  });
-}
 
 exports.issueToken = function(user, deviceId, scopes) {
   defaultLog.info('user:', user);
@@ -113,7 +68,7 @@ exports.issueToken = function(user, deviceId, scopes) {
     userID: user._id,
     deviceId: deviceId,
     jti: jti,
-    iss: ISSUER,
+    iss: SSO_ISSUER,
     realm_access: {
       roles: scopes
     }
@@ -175,3 +130,42 @@ exports.checkAuthentication = function(username, password, cb) {
     }
   );
 };
+
+function verifySecret(currentScopes, tokenString, secret, req, callback, sendError) {
+  jwt.verify(tokenString, secret, function(verificationError, decodedToken) {
+    // defaultLog.info("verificationError:", verificationError);
+    // defaultLog.info("decodedToken:", decodedToken);
+
+    // check if the JWT was verified correctly
+    if (verificationError == null && Array.isArray(currentScopes) && decodedToken && decodedToken.realm_access.roles) {
+      defaultLog.info('JWT decoded.');
+      defaultLog.debug('JWT token:', decodedToken);
+
+      // check if the role is valid for this endpoint
+      var roleMatch = currentScopes.some(r => decodedToken.realm_access.roles.indexOf(r) >= 0);
+      defaultLog.debug('currentScopes', JSON.stringify(currentScopes));
+      defaultLog.debug('decodedToken.realm_access.roles', decodedToken.realm_access.roles);
+      defaultLog.debug('role match', roleMatch);
+
+      // check if the dissuer matches
+      var issuerMatch = decodedToken.iss == SSO_ISSUER;
+      defaultLog.debug('decodedToken.iss', decodedToken.iss);
+      defaultLog.debug('SSO_ISSUER', SSO_ISSUER);
+      defaultLog.debug('issuerMatch', issuerMatch);
+
+      if (roleMatch && issuerMatch) {
+        // add the token to the request so that we can access it in the endpoint code if necessary
+        req.swagger.params.auth_payload = decodedToken;
+        defaultLog.info('JWT Verified.');
+        return callback(null);
+      } else {
+        defaultLog.info('JWT Role/Issuer mismatch.');
+        return callback(sendError());
+      }
+    } else {
+      // return the error in the callback if the JWT was not verified
+      defaultLog.warn('JWT Verification Error:', verificationError);
+      return callback(sendError());
+    }
+  });
+}

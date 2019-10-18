@@ -1,4 +1,4 @@
-module.exports = require('../models')('Document', {
+module.exports = require('../utils/modelSchemaGenerator')('Document', {
   _addedBy: { type: String, default: null },
   _application: { type: 'ObjectId', ref: 'Application', default: null },
   _decision: { type: 'ObjectId', ref: 'Decision', default: null },

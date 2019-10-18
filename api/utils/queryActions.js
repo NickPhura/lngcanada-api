@@ -1,6 +1,7 @@
 'use strict';
+const defaultLog = require('./logger')('queryActions');
+
 const _ = require('lodash');
-const defaultLog = require('./logger')('actions');
 
 exports.publish = function(o) {
   return new Promise(function(resolve, reject) {

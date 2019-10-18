@@ -1,10 +1,8 @@
-# bcgov/nrts-prc-api
+# bcgov/nrpti-api
 
-Minimal API for the ACRFD (formerly: PRC) application.
+API for the Natural Resources Public Transparency Interface (NRPTI).
 
-* [Admin](https://github.com/bcgov/nrts-prc-admin) - front-end for admin users.
-* [Public](https://github.com/bcgov/nrts-prc-public) - front-end for public users.
-* [Api](https://github.com/bcgov/nrts-prc-api) - back-end that serves both admin and public requests.
+* [Api/Admin](https://github.com/bcgov/nrpti) - back-end that serves both admin and public requests.
 
 # Prerequisites
 
@@ -101,7 +99,7 @@ Recommend reviewing the [Open API Specification](https://swagger.io/docs/specifi
 
 # Logging
 
-A centralized logger has been created (see `api/helpers/logger.js`).
+A centralized logger has been created (see `api/utils/logger.js`).
 
 ## Logger configuration
 The loggers log level can be configured via an environment variable: `LOG_LEVEL`

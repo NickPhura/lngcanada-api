@@ -1,5 +1,5 @@
 const factory = require('factory-girl').factory;
-const Document = require('../../helpers/models/document');
+const Document = require('../../models/document');
 
 factory.define('document', Document, buildOptions => {
   let attrs = {

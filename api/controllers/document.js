@@ -1,14 +1,17 @@
+var defaultLog = require('../utils/logger')('document');
+
 var _ = require('lodash');
-var defaultLog = require('../helpers/logger')('document');
 var mongoose = require('mongoose');
 var mime = require('mime-types');
-var Actions = require('../helpers/actions');
-var Utils = require('../helpers/utils');
+var queryActions = require('../utils/queryActions');
+var queryUtils = require('../utils/queryUtils');
+var documentUtils = require('../utils/documentUtils');
 var FlakeIdGen = require('flake-idgen'),
   intformat = require('biguint-format'),
   generator = new FlakeIdGen();
 var fs = require('fs');
-var uploadDir = process.env.UPLOAD_DIRECTORY || './uploads/';
+
+var UPLOAD_DIR = process.env.UPLOAD_DIRECTORY || './uploads/';
 var ENABLE_VIRUS_SCANNING = process.env.ENABLE_VIRUS_SCANNING || false;
 
 var getSanitizedFields = function(fields) {
@@ -25,32 +28,33 @@ exports.publicGet = function(args, res, next) {
   // Build match query if on docId route
   var query = {};
   if (args.swagger.params.docId) {
-    query = Utils.buildQuery('_id', args.swagger.params.docId.value, query);
+    query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
   if (args.swagger.params._application && args.swagger.params._application.value) {
-    query = Utils.buildQuery('_application', args.swagger.params._application.value, query);
+    query = queryUtils.buildQuery('_application', args.swagger.params._application.value, query);
   }
   if (args.swagger.params._comment && args.swagger.params._comment.value) {
-    query = Utils.buildQuery('_comment', args.swagger.params._comment.value, query);
+    query = queryUtils.buildQuery('_comment', args.swagger.params._comment.value, query);
   }
   if (args.swagger.params._decision && args.swagger.params._decision.value) {
-    query = Utils.buildQuery('_decision', args.swagger.params._decision.value, query);
+    query = queryUtils.buildQuery('_decision', args.swagger.params._decision.value, query);
   }
   _.assignIn(query, { isDeleted: false });
 
-  Utils.runDataQuery(
-    'Document',
-    ['public'],
-    query,
-    getSanitizedFields(args.swagger.params.fields.value), // Fields
-    null, // sort warmup
-    null, // sort
-    null, // skip
-    null, // limit
-    false
-  ) // count
+  queryUtils
+    .runDataQuery(
+      'Document',
+      ['public'],
+      query,
+      getSanitizedFields(args.swagger.params.fields.value), // Fields
+      null, // sort warmup
+      null, // sort
+      null, // skip
+      null, // limit
+      false
+    ) // count
     .then(function(data) {
-      return Actions.sendResponse(res, 200, data);
+      return queryActions.sendResponse(res, 200, data);
     });
 };
 exports.unProtectedPost = function(args, res, next) {
@@ -67,7 +71,7 @@ exports.unProtectedPost = function(args, res, next) {
     Promise.resolve()
       .then(function() {
         if (ENABLE_VIRUS_SCANNING == 'true') {
-          return Utils.avScan(args.swagger.params.upfile.value.buffer);
+          return documentUtils.avScan(args.swagger.params.upfile.value.buffer);
         } else {
           return true;
         }
@@ -75,9 +79,9 @@ exports.unProtectedPost = function(args, res, next) {
       .then(function(valid) {
         if (!valid) {
           defaultLog.warn('File failed virus check.');
-          return Actions.sendResponse(res, 400, { message: 'File failed virus check.' });
+          return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
-          fs.writeFileSync(uploadDir + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
+          fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
           var Document = mongoose.model('Document');
           var doc = new Document();
           // Define security tag defaults
@@ -88,13 +92,13 @@ exports.unProtectedPost = function(args, res, next) {
           doc.displayName = displayName;
           doc.documentFileName = upfile.originalname;
           doc.internalMime = upfile.mimetype;
-          doc.internalURL = uploadDir + guid + '.' + ext;
+          doc.internalURL = UPLOAD_DIR + guid + '.' + ext;
           doc.passedAVCheck = true;
           // Update who did this?  TODO: Public
           // doc._addedBy = args.swagger.params.auth_payload.preferred_username;
           doc.save().then(function(d) {
             defaultLog.info('Saved new document object:', d._id);
-            return Actions.sendResponse(res, 200, d);
+            return queryActions.sendResponse(res, 200, d);
           });
         }
       });
@@ -102,7 +106,7 @@ exports.unProtectedPost = function(args, res, next) {
     defaultLog.info('Error:', e);
     // Delete the path details before we return to the caller.
     delete e['path'];
-    return Actions.sendResponse(res, 400, e);
+    return queryActions.sendResponse(res, 400, e);
   }
 };
 
@@ -115,16 +119,16 @@ exports.protectedHead = function(args, res, next) {
   // Build match query if on docId route
   var query = {};
   if (args.swagger.params.docId) {
-    query = Utils.buildQuery('_id', args.swagger.params.docId.value, query);
+    query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
   if (args.swagger.params._application && args.swagger.params._application.value) {
-    query = Utils.buildQuery('_application', args.swagger.params._application.value, query);
+    query = queryUtils.buildQuery('_application', args.swagger.params._application.value, query);
   }
   if (args.swagger.params._comment && args.swagger.params._comment.value) {
-    query = Utils.buildQuery('_comment', args.swagger.params._comment.value, query);
+    query = queryUtils.buildQuery('_comment', args.swagger.params._comment.value, query);
   }
   if (args.swagger.params._decision && args.swagger.params._decision.value) {
-    query = Utils.buildQuery('_decision', args.swagger.params._decision.value, query);
+    query = queryUtils.buildQuery('_decision', args.swagger.params._decision.value, query);
   }
   // Unless they specifically ask for it, hide deleted results.
   if (args.swagger.params.isDeleted && args.swagger.params.isDeleted.value != undefined) {
@@ -133,24 +137,25 @@ exports.protectedHead = function(args, res, next) {
     _.assignIn(query, { isDeleted: false });
   }
 
-  Utils.runDataQuery(
-    'Document',
-    args.swagger.operation['x-security-scopes'],
-    query,
-    ['_id', 'tags'], // Fields
-    null, // sort warmup
-    null, // sort
-    null, // skip
-    null, // limit
-    true
-  ) // count
+  queryUtils
+    .runDataQuery(
+      'Document',
+      args.swagger.operation['x-security-scopes'],
+      query,
+      ['_id', 'tags'], // Fields
+      null, // sort warmup
+      null, // sort
+      null, // skip
+      null, // limit
+      true
+    ) // count
     .then(function(data) {
       // /api/commentperiod/ route, return 200 OK with 0 items if necessary
       if (!(args.swagger.params.docId && args.swagger.params.docId.value) || (data && data.length > 0)) {
         res.setHeader('x-total-count', data && data.length > 0 ? data[0].total_items : 0);
-        return Actions.sendResponse(res, 200, data);
+        return queryActions.sendResponse(res, 200, data);
       } else {
-        return Actions.sendResponse(res, 404, data);
+        return queryActions.sendResponse(res, 404, data);
       }
     });
 };
@@ -164,16 +169,16 @@ exports.protectedGet = function(args, res, next) {
   // Build match query if on docId route
   var query = {};
   if (args.swagger.params.docId) {
-    query = Utils.buildQuery('_id', args.swagger.params.docId.value, query);
+    query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
   if (args.swagger.params._application && args.swagger.params._application.value) {
-    query = Utils.buildQuery('_application', args.swagger.params._application.value, query);
+    query = queryUtils.buildQuery('_application', args.swagger.params._application.value, query);
   }
   if (args.swagger.params._comment && args.swagger.params._comment.value) {
-    query = Utils.buildQuery('_comment', args.swagger.params._comment.value, query);
+    query = queryUtils.buildQuery('_comment', args.swagger.params._comment.value, query);
   }
   if (args.swagger.params._decision && args.swagger.params._decision.value) {
-    query = Utils.buildQuery('_decision', args.swagger.params._decision.value, query);
+    query = queryUtils.buildQuery('_decision', args.swagger.params._decision.value, query);
   }
   // Unless they specifically ask for it, hide deleted results.
   if (args.swagger.params.isDeleted && args.swagger.params.isDeleted.value != undefined) {
@@ -182,41 +187,43 @@ exports.protectedGet = function(args, res, next) {
     _.assignIn(query, { isDeleted: false });
   }
 
-  Utils.runDataQuery(
-    'Document',
-    args.swagger.operation['x-security-scopes'],
-    query,
-    getSanitizedFields(args.swagger.params.fields.value), // Fields
-    null, // sort warmup
-    null, // sort
-    null, // skip
-    null, // limit
-    false
-  ) // count
+  queryUtils
+    .runDataQuery(
+      'Document',
+      args.swagger.operation['x-security-scopes'],
+      query,
+      getSanitizedFields(args.swagger.params.fields.value), // Fields
+      null, // sort warmup
+      null, // sort
+      null, // skip
+      null, // limit
+      false
+    ) // count
     .then(function(data) {
-      return Actions.sendResponse(res, 200, data);
+      return queryActions.sendResponse(res, 200, data);
     });
 };
 exports.publicDownload = function(args, res, next) {
   // Build match query if on docId route
   var query = {};
   if (args.swagger.params.docId) {
-    query = Utils.buildQuery('_id', args.swagger.params.docId.value, query);
+    query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   } else {
-    return Actions.sendResponse(res, 404, {});
+    return queryActions.sendResponse(res, 404, {});
   }
 
-  Utils.runDataQuery(
-    'Document',
-    ['public'],
-    query,
-    ['internalURL', 'documentFileName', 'internalMime'], // Fields
-    null, // sort warmup
-    null, // sort
-    null, // skip
-    null, // limit
-    false
-  ) // count
+  queryUtils
+    .runDataQuery(
+      'Document',
+      ['public'],
+      query,
+      ['internalURL', 'documentFileName', 'internalMime'], // Fields
+      null, // sort warmup
+      null, // sort
+      null, // skip
+      null, // limit
+      false
+    ) // count
     .then(function(data) {
       if (data && data.length === 1) {
         var blob = data[0];
@@ -229,7 +236,7 @@ exports.publicDownload = function(args, res, next) {
           stream.pipe(res);
         }
       } else {
-        return Actions.sendResponse(res, 404, {});
+        return queryActions.sendResponse(res, 404, {});
       }
     });
 };
@@ -243,20 +250,21 @@ exports.protectedDownload = function(args, res, next) {
   // Build match query if on docId route
   var query = {};
   if (args.swagger.params.docId) {
-    query = Utils.buildQuery('_id', args.swagger.params.docId.value, query);
+    query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
 
-  Utils.runDataQuery(
-    'Document',
-    args.swagger.operation['x-security-scopes'],
-    query,
-    ['internalURL', 'documentFileName', 'internalMime'], // Fields
-    null, // sort warmup
-    null, // sort
-    null, // skip
-    null, // limit
-    false
-  ) // count
+  queryUtils
+    .runDataQuery(
+      'Document',
+      args.swagger.operation['x-security-scopes'],
+      query,
+      ['internalURL', 'documentFileName', 'internalMime'], // Fields
+      null, // sort warmup
+      null, // sort
+      null, // skip
+      null, // limit
+      false
+    ) // count
     .then(function(data) {
       if (data && data.length === 1) {
         var blob = data[0];
@@ -269,7 +277,7 @@ exports.protectedDownload = function(args, res, next) {
           stream.pipe(res);
         }
       } else {
-        return Actions.sendResponse(res, 404, {});
+        return queryActions.sendResponse(res, 404, {});
       }
     });
 };
@@ -289,7 +297,7 @@ exports.protectedPost = function(args, res, next) {
     Promise.resolve()
       .then(function() {
         if (ENABLE_VIRUS_SCANNING == 'true') {
-          return Utils.avScan(args.swagger.params.upfile.value.buffer);
+          return documentUtils.avScan(args.swagger.params.upfile.value.buffer);
         } else {
           return true;
         }
@@ -297,9 +305,9 @@ exports.protectedPost = function(args, res, next) {
       .then(function(valid) {
         if (!valid) {
           defaultLog.warn('File failed virus check.');
-          return Actions.sendResponse(res, 400, { message: 'File failed virus check.' });
+          return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
-          fs.writeFileSync(uploadDir + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
+          fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
 
           var Document = mongoose.model('Document');
           var doc = new Document();
@@ -311,13 +319,13 @@ exports.protectedPost = function(args, res, next) {
           doc.displayName = displayName;
           doc.documentFileName = upfile.originalname;
           doc.internalMime = upfile.mimetype;
-          doc.internalURL = uploadDir + guid + '.' + ext;
+          doc.internalURL = UPLOAD_DIR + guid + '.' + ext;
           doc.passedAVCheck = true;
           // Update who did this?
           doc._addedBy = args.swagger.params.auth_payload.preferred_username;
           doc.save().then(function(d) {
             defaultLog.info('Saved new document object:', d._id);
-            return Actions.sendResponse(res, 200, d);
+            return queryActions.sendResponse(res, 200, d);
           });
         }
       });
@@ -325,7 +333,7 @@ exports.protectedPost = function(args, res, next) {
     defaultLog.info('Error:', e);
     // Delete the path details before we return to the caller.
     delete e['path'];
-    return Actions.sendResponse(res, 400, e);
+    return queryActions.sendResponse(res, 400, e);
   }
 };
 
@@ -339,19 +347,19 @@ exports.protectedDelete = function(args, res, next) {
       defaultLog.debug('o:', JSON.stringify(o));
 
       // Set the deleted flag.
-      Actions.delete(o).then(
+      queryActions.delete(o).then(
         function(deleted) {
           // Deleted successfully
-          return Actions.sendResponse(res, 200, deleted);
+          return queryActions.sendResponse(res, 200, deleted);
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, 400, err);
+          return queryActions.sendResponse(res, 400, err);
         }
       );
     } else {
       defaultLog.warn("Couldn't find that object!");
-      return Actions.sendResponse(res, 404, {});
+      return queryActions.sendResponse(res, 404, {});
     }
   });
 };
@@ -366,19 +374,19 @@ exports.protectedPublish = function(args, res, next) {
       defaultLog.debug('o:', JSON.stringify(o));
 
       // Add public to the tag of this obj.
-      Actions.publish(o).then(
+      queryActions.publish(o).then(
         function(published) {
           // Published successfully
-          return Actions.sendResponse(res, 200, published);
+          return queryActions.sendResponse(res, 200, published);
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, null, err);
+          return queryActions.sendResponse(res, null, err);
         }
       );
     } else {
       defaultLog.warn("Couldn't find that object!");
-      return Actions.sendResponse(res, 404, {});
+      return queryActions.sendResponse(res, 404, {});
     }
   });
 };
@@ -392,19 +400,19 @@ exports.protectedUnPublish = function(args, res, next) {
       defaultLog.debug('o:', JSON.stringify(o));
 
       // Remove public to the tag of this obj.
-      Actions.unPublish(o).then(
+      queryActions.unPublish(o).then(
         function(unpublished) {
           // UnPublished successfully
-          return Actions.sendResponse(res, 200, unpublished);
+          return queryActions.sendResponse(res, 200, unpublished);
         },
         function(err) {
           // Error
-          return Actions.sendResponse(res, null, err);
+          return queryActions.sendResponse(res, null, err);
         }
       );
     } else {
       defaultLog.warn("Couldn't find that object!");
-      return Actions.sendResponse(res, 404, {});
+      return queryActions.sendResponse(res, 404, {});
     }
   });
 };
@@ -425,7 +433,7 @@ exports.protectedPut = function(args, res, next) {
     Promise.resolve()
       .then(function() {
         if (ENABLE_VIRUS_SCANNING == 'true') {
-          return Utils.avScan(args.swagger.params.upfile.value.buffer);
+          return documentUtils.avScan(args.swagger.params.upfile.value.buffer);
         } else {
           return true;
         }
@@ -433,15 +441,15 @@ exports.protectedPut = function(args, res, next) {
       .then(function(valid) {
         if (!valid) {
           defaultLog.warn('File failed virus check.');
-          return Actions.sendResponse(res, 400, { message: 'File failed virus check.' });
+          return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
-          fs.writeFileSync(uploadDir + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
+          fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
           var obj = args.swagger.params;
           // Strip security tags - these will not be updated on this route.
           delete obj.tags;
           defaultLog.info('Incoming updated object:', obj._id);
           // Update file location
-          obj.internalURL = uploadDir + guid + '.' + ext;
+          obj.internalURL = UPLOAD_DIR + guid + '.' + ext;
           // Update who did this?
           obj._addedBy = args.swagger.params.auth_payload.preferred_username;
           obj._application = _application;
@@ -453,10 +461,10 @@ exports.protectedPut = function(args, res, next) {
           Document.findOneAndUpdate({ _id: objId }, obj, { upsert: false, new: true }, function(err, o) {
             if (o) {
               // defaultLog.info("o:", o);
-              return Actions.sendResponse(res, 200, o);
+              return queryActions.sendResponse(res, 200, o);
             } else {
               defaultLog.warn("Couldn't find that object!");
-              return Actions.sendResponse(res, 404, {});
+              return queryActions.sendResponse(res, 404, {});
             }
           });
         }
@@ -465,6 +473,6 @@ exports.protectedPut = function(args, res, next) {
     defaultLog.info('Error:', e);
     // Delete the path details before we return to the caller.
     delete e['path'];
-    return Actions.sendResponse(res, 400, e);
+    return queryActions.sendResponse(res, 400, e);
   }
 };
