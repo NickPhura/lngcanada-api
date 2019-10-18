@@ -11,7 +11,7 @@ API for the Natural Resources Public Transparency Interface (NRPTI).
 | node       | 10.x.x  | https://nodejs.org/en/                      | JavaScript Runtime                        |
 | npm        | 6.x.x   | https://www.npmjs.com/                      | Node Package Manager                      |
 | yarn       | latest  | https://yarnpkg.com/en/                     | Package Manager (more efficient than npm) |
-| mongodb    | 3.2     | https://docs.mongodb.com/v3.2/installation/ | NoSQL database                            |
+| mongodb    | 3.4+    | https://docs.mongodb.com/v3.2/installation/ | NoSQL database                            |
 
 ## Install [Node + NPM](https://nodejs.org/en/)
 
