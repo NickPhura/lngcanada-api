@@ -12,7 +12,7 @@ const JWT_SIGN_EXPIRY = process.env.JWT_SIGN_EXPIRY || '1440'; // 24 hours in mi
 const SECRET = process.env.SECRET || 'defaultSecret';
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} req
  * @param {*} authOrSecDef
@@ -60,7 +60,7 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} user
  * @param {*} deviceId
@@ -101,7 +101,7 @@ exports.issueToken = function(user, deviceId, scopes) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} currentScopes
  * @param {*} tokenString

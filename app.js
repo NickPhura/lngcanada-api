@@ -21,7 +21,7 @@ const DB_CONNECTION =
 const DB_USERNAME = process.env.MONGODB_USERNAME || '';
 const DB_PASSWORD = process.env.MONGODB_PASSWORD || '';
 
-// Increase postbody sizing
+// Increase post body sizing
 app.use(bodyParser.json({ limit: '10mb', extended: true }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
@@ -50,9 +50,8 @@ if (HOSTNAME !== 'localhost:3000') {
 swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
   app.use(middleware.swaggerMetadata());
 
-  // TODO: Fix swagger validator
-  // const swaggerValidatorConfig = { validateResponse: false};
-  // app.use(middleware.swaggerValidator(swaggerValidatorConfig));
+  const swaggerValidatorConfig = { validateResponse: false };
+  app.use(middleware.swaggerValidator(swaggerValidatorConfig));
 
   const swaggerSecurityConfig = {
     Bearer: authUtils.verifyToken
@@ -71,7 +70,7 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
 
   app.use(middleware.swaggerUi(swaggerUIConfig));
 
-  // Ensure uploads directory exists, else create it.
+  // Ensure uploads directory exists, otherwise create it.
   try {
     if (!fs.existsSync(UPLOAD_DIR)) {
       fs.mkdirSync(UPLOAD_DIR);

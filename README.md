@@ -1,8 +1,9 @@
-# bcgov/nrpti-api
+# bcgov/nrpti/api
 
 API for the Natural Resources Public Transparency Interface (NRPTI).
 
-* [Api/Admin](https://github.com/bcgov/nrpti) - back-end that serves both admin and public requests.
+* [Api](https://github.com/bcgov/nrpti/api) - back-end that serves both admin and public requests.
+* [Admin](https://github.com/bcgov/nrpti/admin) - front-end for admin users.
 
 # Prerequisites
 
@@ -156,24 +157,24 @@ The **_MOST IMPORTANT_** thing to know about this project's test environment is 
 ```javascript
 const test_helper = require('./test_helper');
 const app = test_helper.app;
-const featureController = require('../controllers/feature.js');
+const documentController = require('../controllers/documentController.js');
 const fieldNames = ['tags', 'properties', 'applicationID'];
 
-app.get('/api/feature/:id', function(req, res) {
-  let params = test_helper.buildParams({'featureId': req.params.id});
-  let paramsWithFeatureId = test_helper.createPublicSwaggerParams(fieldNames, params);
-  return featureController.protectedGet(paramsWithFeatureId, res);
+app.get('/api/document/:id', function(req, res) {
+  let params = test_helper.buildParams({'documentId': req.params.id});
+  let paramsWithDocumentId = test_helper.createPublicSwaggerParams(fieldNames, params);
+  return documentController.protectedGet(paramsWithDocumentId, res);
 });
 
-test("GET /api/feature/:id  returns 200", done => {
+test("GET /api/document/:id  returns 200", done => {
   request(app)
-    .get('/api/feature/AAABBB')
+    .get('/api/document/AAABBB')
     .expect(200)
     .then(done)
 });
 ```
 
-This code will stand in for the swagger-tools router, and help build the objects that swagger-tools magically generates when HTTP calls go through it's router. The above code will send an object like below to the `api/controllers/feature.js` controller `protectedGet` function as the first parameter (typically called `args`).
+This code will stand in for the swagger-tools router, and help build the objects that swagger-tools magically generates when HTTP calls go through it's router. The above code will send an object like below to the `api/controllers/documentController.js` controller `protectedGet` function as the first parameter (typically called `args`).
 
 ```javascript
 {
@@ -186,7 +187,7 @@ This code will stand in for the swagger-tools router, and help build the objects
       fields: {
         value: ['tags', 'properties', 'applicationID']
       },
-      featureId: {
+      documentId: {
         value: 'AAABBB'
       }
     }
@@ -217,13 +218,13 @@ External http calls (such as GETs to BCGW) are mocked with a tool called [nock](
       .reply(200, crownlandsResponse);
   });
 
-  test('returns the features data from bcgw', done => {
+  test('returns the document data from bcgw', done => {
     request(app).get('/api/public/search/bcgw/dispositionTransactionId/' + dispositionId)
       .expect(200)
       .then(response => {
-        let firstFeature = response.body.features[0];
-        expect(firstFeature).toHaveProperty('properties');
-        expect(firstFeature.properties).toHaveProperty('DISPOSITION_TRANSACTION_SID');
+        let firstDocument = response.body.document[0];
+        expect(firstDocument).toHaveProperty('properties');
+        expect(firstDocument.properties).toHaveProperty('DISPOSITION_TRANSACTION_SID');
         done();
       });
   });

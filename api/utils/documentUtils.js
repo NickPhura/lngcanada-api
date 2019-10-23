@@ -10,7 +10,7 @@ const defaultLog = require('./logger')('documentUtils');
 // TODO Make this event driven instead of synchronous?
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} buffer
  * @returns

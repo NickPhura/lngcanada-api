@@ -5,7 +5,7 @@ const _ = require('lodash');
 const defaultLog = require('./logger')('queryActions');
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} o
  * @returns
@@ -34,7 +34,7 @@ exports.publish = function(o) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} o
  * @returns
@@ -46,7 +46,7 @@ exports.isPublished = function(o) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} o
  * @returns
@@ -74,7 +74,7 @@ exports.unPublish = function(o) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} o
  * @returns

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * This file contains various utility functions for working with ACRFD and ACRFD data.
+ * This file contains query builder utility functions.
  */
 
 var _ = require('lodash');
@@ -11,7 +11,7 @@ var MAX_LIMIT = 1000;
 var DEFAULT_PAGESIZE = 100;
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} property
  * @param {*} values
@@ -35,7 +35,7 @@ exports.buildQuery = function(property, values, query) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} pageSize
  * @param {*} pageNum
@@ -60,7 +60,7 @@ exports.getSkipLimitParameters = function(pageSize, pageNum) {
 };
 
 /**
- *
+ * TODO: populate this documentation
  *
  * @param {*} modelType
  * @param {*} role

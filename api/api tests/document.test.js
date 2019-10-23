@@ -2,14 +2,12 @@ const test_helper = require('./test_helper');
 const app = test_helper.app;
 const mongoose = require('mongoose');
 const documentFactory = require('./factories/document_factory').factory;
-const commentFactory = require('./factories/comment_factory').factory;
 const applicationFactory = require('./factories/application_factory').factory;
-const decisionFactory = require('./factories/decision_factory').factory;
 const request = require('supertest');
 const shell = require('shelljs');
 const _ = require('lodash');
 
-const documentController = require('../controllers/document.js');
+const documentController = require('../controllers/documentController.js');
 require('../models/document');
 const Document = mongoose.model('Document');
 
@@ -74,7 +72,7 @@ app.post('/api/public/document', function(req, res) {
   let extraFields = test_helper.buildParams(req.body);
   let params = test_helper.createPublicSwaggerParams(fieldNames, extraFields, idirUsername);
 
-  return documentController.unProtectedPost(params, res);
+  return documentController.publicPost(params, res);
 });
 
 app.put('/api/document/:id/publish', function(req, res) {
@@ -171,69 +169,23 @@ describe('GET /document', () => {
       });
   });
 
-  test('can search based on comment', done => {
-    commentFactory.create('comment', { name: 'Detailed comment with attachment' }).then(comment => {
-      let documentAttrs = {
-        _comment: comment.id,
-        displayName: 'Attatchment for comment',
-        documentFileName: 'long_list.docx'
-      };
-      documentFactory.create('document', documentAttrs, { public: false }).then(document => {
-        request(app)
-          .get('/api/document')
-          .query({ _comment: comment.id })
-          .expect(200)
-          .then(response => {
-            expect(response.body.length).toBe(1);
-            let resultingDocument = response.body[0];
-            expect(resultingDocument).not.toBeNull();
-            expect(resultingDocument.displayName).toBe('Attatchment for comment');
-            done();
-          });
-      });
-    });
-  });
-
   test('can search based on application', done => {
     applicationFactory.create('application', { name: 'Detailed application with attachment' }).then(application => {
       let documentAttrs = {
-        _application: application.id,
+        _record: application.id,
         displayName: 'Attachment for Application',
         documentFileName: 'long_list.docx'
       };
       documentFactory.create('document', documentAttrs, { public: false }).then(document => {
         request(app)
           .get('/api/document')
-          .query({ _application: application.id })
+          .query({ _record: application.id })
           .expect(200)
           .then(response => {
             expect(response.body.length).toBe(1);
             let resultingDocument = response.body[0];
             expect(resultingDocument).not.toBeNull();
             expect(resultingDocument.displayName).toBe('Attachment for Application');
-            done();
-          });
-      });
-    });
-  });
-
-  test('can search based on decision', done => {
-    decisionFactory.create('decision', { name: 'Detailed decision with attachment' }).then(decision => {
-      let documentAttrs = {
-        _decision: decision.id,
-        displayName: 'Attachment for Decision',
-        documentFileName: 'long_list.docx'
-      };
-      documentFactory.create('document', documentAttrs, { public: false }).then(document => {
-        request(app)
-          .get('/api/document')
-          .query({ _decision: decision.id })
-          .expect(200)
-          .then(response => {
-            expect(response.body.length).toBe(1);
-            let resultingDocument = response.body[0];
-            expect(resultingDocument).not.toBeNull();
-            expect(resultingDocument.displayName).toBe('Attachment for Decision');
             done();
           });
       });
@@ -302,69 +254,23 @@ describe('GET /public/document', () => {
       });
   });
 
-  test('can search based on comment', done => {
-    commentFactory.create('comment', { name: 'Detailed comment with attachment' }).then(comment => {
-      let documentAtts = {
-        _comment: comment.id,
-        displayName: 'Attatchment for comment',
-        documentFileName: 'long_list.docx'
-      };
-      documentFactory.create('document', documentAtts, { public: true }).then(document => {
-        request(app)
-          .get('/api/public/document')
-          .query({ _comment: comment.id })
-          .expect(200)
-          .then(response => {
-            expect(response.body.length).toBe(1);
-            let resultingDocument = response.body[0];
-            expect(resultingDocument).not.toBeNull();
-            expect(resultingDocument.displayName).toBe('Attatchment for comment');
-            done();
-          });
-      });
-    });
-  });
-
   test('can search based on application', done => {
     applicationFactory.create('application', { name: 'Detailed application with attachment' }).then(application => {
       let documentAttrs = {
-        _application: application.id,
+        _record: application.id,
         displayName: 'Attachment for Application',
         documentFileName: 'long_list.docx'
       };
       documentFactory.create('document', documentAttrs, { public: true }).then(document => {
         request(app)
           .get('/api/public/document')
-          .query({ _application: application.id })
+          .query({ _record: application.id })
           .expect(200)
           .then(response => {
             expect(response.body.length).toBe(1);
             let resultingDocument = response.body[0];
             expect(resultingDocument).not.toBeNull();
             expect(resultingDocument.displayName).toBe('Attachment for Application');
-            done();
-          });
-      });
-    });
-  });
-
-  test('can search based on decision', done => {
-    decisionFactory.create('decision', { name: 'Detailed decision with attachment' }).then(decision => {
-      let documentAttrs = {
-        _decision: decision.id,
-        displayName: 'Attachment for Decision',
-        documentFileName: 'long_list.docx'
-      };
-      documentFactory.create('document', documentAttrs, { public: true }).then(document => {
-        request(app)
-          .get('/api/public/document')
-          .query({ _decision: decision.id })
-          .expect(200)
-          .then(response => {
-            expect(response.body.length).toBe(1);
-            let resultingDocument = response.body[0];
-            expect(resultingDocument).not.toBeNull();
-            expect(resultingDocument.displayName).toBe('Attachment for Decision');
             done();
           });
       });
@@ -402,30 +308,17 @@ describe('GET /public/document/{id}', () => {
 });
 
 describe('POST /document', () => {
-  let applicationId, commentId, decisionId;
+  let applicationId;
 
   beforeEach(done => {
     applicationFactory.create('application', {}).then(application => {
       applicationId = application.id;
-      commentFactory
-        .create('comment', {})
-        .then(comment => {
-          commentId = comment.id;
-        })
-        .then(() => {
-          decisionFactory.create('decision', {}).then(decision => {
-            decisionId = decision.id;
-            done();
-          });
-        });
     });
   });
 
   function buildDocumentParams() {
     return {
-      _application: applicationId,
-      _comment: commentId,
-      _decision: decisionId,
+      _record: applicationId,
       displayName: 'Critically Important File',
       upfile: {
         mimetype: 'text/plain',
@@ -451,7 +344,7 @@ describe('POST /document', () => {
       });
   });
 
-  test('sets the relationships to application, comment, and decision', done => {
+  test('sets the relationships to application', done => {
     let documentParams = buildDocumentParams();
     request(app)
       .post('/api/document')
@@ -461,9 +354,7 @@ describe('POST /document', () => {
         expect(response.body._id).not.toBeNull();
         Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
-          expect(document._application.toString()).toBe(applicationId);
-          expect(document._comment.toString()).toBe(commentId);
-          expect(document._decision.toString()).toBe(decisionId);
+          expect(document._record.toString()).toBe(applicationId);
           done();
         });
       });
@@ -513,30 +404,17 @@ describe('POST /document', () => {
 // It appears this endpoint does not work.
 // The "doc" variable in the protectedPut method is not defined.
 describe.skip('PUT /document/{:id}', () => {
-  let applicationId, commentId, decisionId;
+  let applicationId;
 
   beforeEach(done => {
     applicationFactory.create('application', {}).then(application => {
       applicationId = application.id;
-      commentFactory
-        .create('comment', {})
-        .then(comment => {
-          commentId = comment.id;
-        })
-        .then(() => {
-          decisionFactory.create('decision', {}).then(decision => {
-            decisionId = decision.id;
-            done();
-          });
-        });
     });
   });
 
   function buildDocumentParams() {
     return {
-      _application: applicationId,
-      _comment: commentId,
-      _decision: decisionId,
+      _record: applicationId,
       displayName: 'Exciting new Document!',
       upfile: {
         mimetype: 'text/plain',
@@ -545,9 +423,7 @@ describe.skip('PUT /document/{:id}', () => {
     };
   }
   let documentData = {
-    _application: null,
-    _comment: null,
-    _decision: null,
+    _record: null,
     _addedBy: null,
     displayName: 'Boring old document'
   };
@@ -617,30 +493,17 @@ describe('GET /document/{:id}/download', () => {
 });
 
 describe('POST /public/document', () => {
-  let applicationId, commentId, decisionId;
+  let applicationId;
 
   beforeEach(done => {
     applicationFactory.create('application', {}).then(application => {
       applicationId = application.id;
-      commentFactory
-        .create('comment', {})
-        .then(comment => {
-          commentId = comment.id;
-        })
-        .then(() => {
-          decisionFactory.create('decision', {}).then(decision => {
-            decisionId = decision.id;
-            done();
-          });
-        });
     });
   });
 
   function buildDocumentParams() {
     return {
-      _application: applicationId,
-      _comment: commentId,
-      _decision: decisionId,
+      _record: applicationId,
       displayName: 'Critically Important File',
       upfile: {
         mimetype: 'text/plain',
@@ -666,7 +529,7 @@ describe('POST /public/document', () => {
       });
   });
 
-  test('sets the relationships to application, comment, and decision', done => {
+  test('sets the relationships to application', done => {
     let documentParams = buildDocumentParams();
     request(app)
       .post('/api/public/document')
@@ -676,9 +539,7 @@ describe('POST /public/document', () => {
         expect(response.body._id).not.toBeNull();
         Document.findById(response.body._id).exec(function(error, document) {
           expect(document).not.toBeNull();
-          expect(document._application.toString()).toBe(applicationId);
-          expect(document._comment.toString()).toBe(commentId);
-          expect(document._decision.toString()).toBe(decisionId);
+          expect(document._record.toString()).toBe(applicationId);
           done();
         });
       });

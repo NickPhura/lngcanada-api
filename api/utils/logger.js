@@ -15,12 +15,27 @@ const winston = require('winston');
  * log.error('An error:', error)
  * ...etc
  *
+ * Example Output:
+ * [15-09-2019 14:44:30] [info] (my label): Some info!
+ * [02-12-2019 14:45:02] [error] (my label): An error: 404 Not Found
+ * ...etc
+ *
+ * Note:
  * If you wish to print an object, you must JSON.stringify() it first.
  *
- * Valid LOG_LEVEL:
- * error, warn, info, verbose, debug, silly.
+ * Valid LOG_LEVEL (from least logging to most logging):
+ * error, warn, info, debug
+ *
+ * Default LOG_LEVEL if non specified:
+ * info
  */
 
+/**
+ * Get or create a logger for the given logLabel.
+ *
+ * @param {*} logLabel label for the logger.
+ * @returns
+ */
 const getLogger = function(logLabel) {
   return winston.loggers.get(logLabel || 'default', {
     transports: [
