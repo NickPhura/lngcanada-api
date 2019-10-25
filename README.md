@@ -210,7 +210,7 @@ External http calls (such as GETs to BCGW) are mocked with a tool called [nock](
   const bcgwDomain = 'https://openmaps.gov.bc.ca';
   const searchPath = '/geo/pub/FOOO';
   const crownlandsResponse = require('./fixtures/crownlands_response.json');
-  var bcgw = nock(bcgwDomain);
+  let bcgw = nock(bcgwDomain);
   let dispositionId = 666666;
 
   beforeEach(() => {

@@ -104,6 +104,7 @@ swaggerTools.initializeMiddleware(swaggerConfig, function(middleware) {
       defaultLog.info('Loading database models');
 
       // Load database models
+      require('./api/models/record');
       require('./api/models/document');
 
       // Start application

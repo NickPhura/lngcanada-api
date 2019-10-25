@@ -12,7 +12,7 @@ const defaultLog = require('./logger')('queryActions');
  */
 exports.publish = function(o) {
   return new Promise(function(resolve, reject) {
-    var exists = _.find(o.tags, function(item) {
+    let exists = _.find(o.tags, function(item) {
       return _.isEqual(item, ['public']);
     });
 
@@ -53,7 +53,7 @@ exports.isPublished = function(o) {
  */
 exports.unPublish = function(o) {
   return new Promise(function(resolve, reject) {
-    var exists = _.remove(o.tags, function(item) {
+    let exists = _.remove(o.tags, function(item) {
       return _.isEqual(item, ['public']);
     });
     // Object wasn't already published?

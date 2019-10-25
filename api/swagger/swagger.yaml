@@ -69,11 +69,11 @@ definitions:
       tags:
         type: string
         example: [["sysadmin"], ["public"]]
-  ApplicationFields:
+  RecordFields:
     type: string
     description: "Optional Record fields to return"
     example: "agency|areaHectares|etc"
-    enum: &applicationFields
+    enum: &RecordFields
       - _createdBy
       - createdDate
       - description
@@ -176,37 +176,6 @@ paths:
           description: "Access Denied"
           schema:
             $ref: "#/definitions/Error"
-    post:
-      tags:
-        - record
-      summary: "Create a new Record"
-      operationId: protectedPost
-      description: "Authenticated access to create an Record object"
-      security:
-        - Bearer: []
-      x-security-scopes:
-        - sysadmin
-        - write:record
-      parameters:
-        - name: app
-          in: body
-          required: true
-          description: "Data for Record to create"
-          schema:
-            type: object
-            properties:
-              _id:
-                type: string
-                example: "54759eb3c090d83494e2d804"
-      responses:
-        "200":
-          description: "Success"
-          schema:
-            $ref: "#/definitions/Record"
-        "403":
-          description: "Access Denied"
-          schema:
-            $ref: "#/definitions/Error"
     head:
       tags:
         - record
@@ -275,7 +244,7 @@ paths:
           collectionFormat: pipes
           items:
             type: string
-            enum: *applicationFields
+            enum: *RecordFields
         - in: query
           name: isDeleted
           type: boolean
@@ -314,6 +283,37 @@ paths:
           type: string
           required: false
           description: "Record field to sort by"
+      responses:
+        "200":
+          description: "Success"
+          schema:
+            $ref: "#/definitions/Record"
+        "403":
+          description: "Access Denied"
+          schema:
+            $ref: "#/definitions/Error"
+    post:
+      tags:
+        - record
+      summary: "Create a new Record"
+      operationId: protectedPost
+      description: "Authenticated access to create an Record object"
+      security:
+        - Bearer: []
+      x-security-scopes:
+        - sysadmin
+        - write:record
+      parameters:
+        - name: app
+          in: body
+          required: true
+          description: "Data for Record to create"
+          schema:
+            type: object
+            properties:
+              _id:
+                type: string
+                example: "54759eb3c090d83494e2d804"
       responses:
         "200":
           description: "Success"
@@ -402,7 +402,7 @@ paths:
           collectionFormat: pipes
           items:
             type: string
-            enum: *applicationFields
+            enum: *RecordFields
         - in: query
           name: isDeleted
           type: boolean
@@ -648,7 +648,7 @@ paths:
           collectionFormat: pipes
           items:
             type: string
-            enum: *applicationFields
+            enum: *RecordFields
         - in: query
           name: pageNum
           type: number
@@ -723,7 +723,7 @@ paths:
           collectionFormat: pipes
           items:
             type: string
-            enum: *applicationFields
+            enum: *RecordFields
       responses:
         "200":
           description: "Success"

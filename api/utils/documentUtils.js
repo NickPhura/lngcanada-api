@@ -1,9 +1,9 @@
 'use strict';
 
-var clamav = require('clamav.js');
+let clamav = require('clamav.js');
 
-var CLAMAV_SERVICE_HOST = process.env.CLAMAV_SERVICE_HOST || '127.0.0.1';
-var CLAMAV_SERVICE_PORT = process.env.CLAMAV_SERVICE_PORT || '3310';
+let CLAMAV_SERVICE_HOST = process.env.CLAMAV_SERVICE_HOST || '127.0.0.1';
+let CLAMAV_SERVICE_PORT = process.env.CLAMAV_SERVICE_PORT || '3310';
 
 const defaultLog = require('./logger')('documentUtils');
 
@@ -17,9 +17,9 @@ const defaultLog = require('./logger')('documentUtils');
  */
 exports.avScan = function(buffer) {
   return new Promise(function(resolve, reject) {
-    var stream = require('stream');
+    let stream = require('stream');
     // Initiate the source
-    var bufferStream = new stream.PassThrough();
+    let bufferStream = new stream.PassThrough();
     // Write your buffer
     bufferStream.end(buffer);
 

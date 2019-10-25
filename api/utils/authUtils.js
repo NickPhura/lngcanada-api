@@ -25,14 +25,14 @@ exports.verifyToken = function(req, authOrSecDef, token, callback) {
   defaultLog.debug('token:', token);
 
   // scopes/roles defined for the current endpoint
-  var currentScopes = req.swagger.operation['x-security-scopes'];
+  let currentScopes = req.swagger.operation['x-security-scopes'];
   function sendError() {
     return req.res.status(403).json({ message: 'Error: Access Denied' });
   }
 
   // validate the 'Authorization' header. it should have the following format: `Bearer tokenString`
   if (token && token.indexOf('Bearer ') == 0) {
-    var tokenString = token.split(' ')[1];
+    let tokenString = token.split(' ')[1];
 
     defaultLog.debug('Remote JWT verification');
 
@@ -73,16 +73,16 @@ exports.issueToken = function(user, deviceId, scopes) {
   defaultLog.debug('deviceId:', deviceId);
   defaultLog.debug('scopes:', scopes);
 
-  var crypto = require('crypto');
-  var randomString = crypto.randomBytes(32).toString('hex');
-  var jti = crypto
+  let crypto = require('crypto');
+  let randomString = crypto.randomBytes(32).toString('hex');
+  let jti = crypto
     .createHash('sha256')
     .update(user.username + deviceId + randomString)
     .digest('hex');
 
   defaultLog.debug('JTI:', jti);
 
-  var payload = {
+  let payload = {
     name: user.username,
     preferred_username: user.username,
     userID: user._id,
@@ -94,7 +94,7 @@ exports.issueToken = function(user, deviceId, scopes) {
     }
   };
 
-  var token = jwt.sign(payload, SECRET, { expiresIn: JWT_SIGN_EXPIRY + 'm' });
+  let token = jwt.sign(payload, SECRET, { expiresIn: JWT_SIGN_EXPIRY + 'm' });
   defaultLog.info('Issued new token - expires in:', JWT_SIGN_EXPIRY + 'm');
 
   return token;
@@ -125,12 +125,12 @@ function verifySecret(currentScopes, tokenString, secret, req, callback, sendErr
       defaultLog.debug('SSO_ISSUER', SSO_ISSUER);
 
       // check if the role is valid for this endpoint
-      var roleMatch = currentScopes.some(r => decodedToken.realm_access.roles.indexOf(r) >= 0);
+      let roleMatch = currentScopes.some(r => decodedToken.realm_access.roles.indexOf(r) >= 0);
 
       defaultLog.debug('role match', roleMatch);
 
       // check if the dissuer matches
-      var issuerMatch = decodedToken.iss == SSO_ISSUER;
+      let issuerMatch = decodedToken.iss == SSO_ISSUER;
 
       defaultLog.debug('issuerMatch', issuerMatch);
 

@@ -1,7 +1,7 @@
 'use strict';
 
-var mongoose = require('mongoose');
-var _ = require('lodash');
+let mongoose = require('mongoose');
+let _ = require('lodash');
 
 const defaultLog = require('./logger')('modelSchemaGenerator');
 
@@ -12,7 +12,7 @@ const defaultLog = require('./logger')('modelSchemaGenerator');
  * @param {*} definition model definition
  * @returns mongoose schema
  */
-var genSchema = function(name, definition) {
+let genSchema = function(name, definition) {
   // model properties
   let indexes = [];
 
@@ -35,7 +35,7 @@ var genSchema = function(name, definition) {
   };
 
   // create schema
-  var schema = new mongoose.Schema(definition, options);
+  let schema = new mongoose.Schema(definition, options);
 
   // add model properties - post schema creation
   if (indexes && indexes.length) {

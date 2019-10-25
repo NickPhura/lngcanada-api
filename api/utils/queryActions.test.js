@@ -23,7 +23,7 @@ describe('#publish', () => {
 });
 
 test('Testing publish', () => {
-  var o = {};
+  let o = {};
   o.tags = [['sysadmin']];
 
   expect(queryActions.isPublished(o)).toEqual(undefined);

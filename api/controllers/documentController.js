@@ -1,23 +1,23 @@
 'use strict';
 
-var _ = require('lodash');
-var mongoose = require('mongoose');
-var mime = require('mime-types');
-var queryActions = require('../utils/queryActions');
-var queryUtils = require('../utils/queryUtils');
-var documentUtils = require('../utils/documentUtils');
-var FlakeIdGen = require('flake-idgen'),
+let _ = require('lodash');
+let mongoose = require('mongoose');
+let mime = require('mime-types');
+let queryActions = require('../utils/queryActions');
+let queryUtils = require('../utils/queryUtils');
+let documentUtils = require('../utils/documentUtils');
+let FlakeIdGen = require('flake-idgen'),
   intformat = require('biguint-format'),
   generator = new FlakeIdGen();
-var fs = require('fs');
+let fs = require('fs');
 
-var defaultLog = require('../utils/logger')('document');
+let defaultLog = require('../utils/logger')('document');
 
-var UPLOAD_DIR = process.env.UPLOAD_DIRECTORY || './uploads/';
-var ENABLE_VIRUS_SCANNING = process.env.ENABLE_VIRUS_SCANNING || false;
+let UPLOAD_DIR = process.env.UPLOAD_DIRECTORY || './uploads/';
+let ENABLE_VIRUS_SCANNING = process.env.ENABLE_VIRUS_SCANNING || false;
 
 const allowedFields = ['displayName', 'internalURL', 'passedAVCheck', 'documentFileName', 'internalMime'];
-var getSanitizedFields = function(fields) {
+let getSanitizedFields = function(fields) {
   return _.remove(fields, function(field) {
     return _.indexOf(allowedFields, field) !== -1;
   });
@@ -50,7 +50,7 @@ exports.protectedHead = function(args, res, next) {
   );
 
   // Build match query if on docId route
-  var query = {};
+  let query = {};
   if (args.swagger.params.docId) {
     query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
@@ -100,7 +100,7 @@ exports.protectedGet = function(args, res, next) {
   );
 
   // Build match query if on docId route
-  var query = {};
+  let query = {};
   if (args.swagger.params.docId) {
     query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
@@ -145,7 +145,7 @@ exports.protectedDownload = function(args, res, next) {
   );
 
   // Build match query if on docId route
-  var query = {};
+  let query = {};
   if (args.swagger.params.docId) {
     query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
@@ -164,10 +164,10 @@ exports.protectedDownload = function(args, res, next) {
     ) // count
     .then(function(data) {
       if (data && data.length === 1) {
-        var blob = data[0];
+        let blob = data[0];
         if (fs.existsSync(blob.internalURL)) {
-          var stream = fs.createReadStream(blob.internalURL);
-          var stat = fs.statSync(blob.internalURL);
+          let stream = fs.createReadStream(blob.internalURL);
+          let stat = fs.statSync(blob.internalURL);
           res.setHeader('Content-Length', stat.size);
           res.setHeader('Content-Type', blob.internalMime);
           res.setHeader('Content-Disposition', 'inline;filename="' + blob.documentFileName + '"');
@@ -189,12 +189,12 @@ exports.protectedDownload = function(args, res, next) {
  */
 exports.protectedPost = function(args, res, next) {
   defaultLog.info('Creating new object');
-  var _record = args.swagger.params._record.value;
-  var displayName = args.swagger.params.displayName.value;
-  var upfile = args.swagger.params.upfile.value;
+  let _record = args.swagger.params._record.value;
+  let displayName = args.swagger.params.displayName.value;
+  let upfile = args.swagger.params.upfile.value;
 
-  var guid = intformat(generator.next(), 'dec');
-  var ext = mime.extension(args.swagger.params.upfile.value.mimetype);
+  let guid = intformat(generator.next(), 'dec');
+  let ext = mime.extension(args.swagger.params.upfile.value.mimetype);
   try {
     Promise.resolve()
       .then(function() {
@@ -211,8 +211,8 @@ exports.protectedPost = function(args, res, next) {
         } else {
           fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
 
-          var Document = mongoose.model('Document');
-          var doc = new Document();
+          let Document = mongoose.model('Document');
+          let doc = new Document();
           // Define security tag defaults
           doc.tags = [['sysadmin']];
           doc._record = _record;
@@ -245,10 +245,10 @@ exports.protectedPost = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedDelete = function(args, res, next) {
-  var objId = args.swagger.params.docId.value;
+  let objId = args.swagger.params.docId.value;
   defaultLog.info('Delete Document:', objId);
 
-  var Document = require('mongoose').model('Document');
+  let Document = require('mongoose').model('Document');
   Document.findOne({ _id: objId, isDeleted: false }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -281,13 +281,13 @@ exports.protectedDelete = function(args, res, next) {
  */
 exports.protectedPut = function(args, res, next) {
   // defaultLog.info("upfile:", args.swagger.params.upfile);
-  var objId = args.swagger.params.docId.value;
-  var _record = args.swagger.params._record.value;
-  var displayName = args.swagger.params.displayName.value;
+  let objId = args.swagger.params.docId.value;
+  let _record = args.swagger.params._record.value;
+  let displayName = args.swagger.params.displayName.value;
   defaultLog.info('ObjectID:', args.swagger.params.docId.value);
 
-  var guid = intformat(generator.next(), 'dec');
-  var ext = mime.extension(args.swagger.params.upfile.value.mimetype);
+  let guid = intformat(generator.next(), 'dec');
+  let ext = mime.extension(args.swagger.params.upfile.value.mimetype);
   try {
     Promise.resolve()
       .then(function() {
@@ -303,7 +303,7 @@ exports.protectedPut = function(args, res, next) {
           return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
           fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
-          var obj = args.swagger.params;
+          let obj = args.swagger.params;
           // Strip security tags - these will not be updated on this route.
           delete obj.tags;
           defaultLog.info('Incoming updated object:', obj._id);
@@ -314,7 +314,7 @@ exports.protectedPut = function(args, res, next) {
           obj._record = _record;
           obj.displayName = displayName;
           obj.passedAVCheck = true;
-          var Document = require('mongoose').model('Document');
+          let Document = require('mongoose').model('Document');
           Document.findOneAndUpdate({ _id: objId }, obj, { upsert: false, new: true }, function(err, o) {
             if (o) {
               // defaultLog.info("o:", o);
@@ -342,10 +342,10 @@ exports.protectedPut = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedPublish = function(args, res, next) {
-  var objId = args.swagger.params.docId.value;
+  let objId = args.swagger.params.docId.value;
   defaultLog.info('Publish Document:', objId);
 
-  var Document = require('mongoose').model('Document');
+  let Document = require('mongoose').model('Document');
   Document.findOne({ _id: objId }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -376,10 +376,10 @@ exports.protectedPublish = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedUnPublish = function(args, res, next) {
-  var objId = args.swagger.params.docId.value;
+  let objId = args.swagger.params.docId.value;
   defaultLog.info('UnPublish Document:', objId);
 
-  var Document = require('mongoose').model('Document');
+  let Document = require('mongoose').model('Document');
   Document.findOne({ _id: objId }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -413,7 +413,7 @@ exports.protectedUnPublish = function(args, res, next) {
  */
 exports.publicGet = function(args, res, next) {
   // Build match query if on docId route
-  var query = {};
+  let query = {};
   if (args.swagger.params.docId) {
     query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   }
@@ -449,12 +449,12 @@ exports.publicGet = function(args, res, next) {
  */
 exports.publicPost = function(args, res, next) {
   defaultLog.info('Creating new object');
-  var _record = args.swagger.params._record.value;
-  var displayName = args.swagger.params.displayName.value;
-  var upfile = args.swagger.params.upfile.value;
+  let _record = args.swagger.params._record.value;
+  let displayName = args.swagger.params.displayName.value;
+  let upfile = args.swagger.params.upfile.value;
 
-  var guid = intformat(generator.next(), 'dec');
-  var ext = mime.extension(args.swagger.params.upfile.value.mimetype);
+  let guid = intformat(generator.next(), 'dec');
+  let ext = mime.extension(args.swagger.params.upfile.value.mimetype);
   try {
     Promise.resolve()
       .then(function() {
@@ -470,8 +470,8 @@ exports.publicPost = function(args, res, next) {
           return queryActions.sendResponse(res, 400, { message: 'File failed virus check.' });
         } else {
           fs.writeFileSync(UPLOAD_DIR + guid + '.' + ext, args.swagger.params.upfile.value.buffer);
-          var Document = mongoose.model('Document');
-          var doc = new Document();
+          let Document = mongoose.model('Document');
+          let doc = new Document();
           // Define security tag defaults
           doc.tags = [['sysadmin']];
           doc._record = _record;
@@ -506,7 +506,7 @@ exports.publicPost = function(args, res, next) {
  */
 exports.publicDownload = function(args, res, next) {
   // Build match query if on docId route
-  var query = {};
+  let query = {};
   if (args.swagger.params.docId) {
     query = queryUtils.buildQuery('_id', args.swagger.params.docId.value, query);
   } else {
@@ -527,10 +527,10 @@ exports.publicDownload = function(args, res, next) {
     ) // count
     .then(function(data) {
       if (data && data.length === 1) {
-        var blob = data[0];
+        let blob = data[0];
         if (fs.existsSync(blob.internalURL)) {
-          var stream = fs.createReadStream(blob.internalURL);
-          var stat = fs.statSync(blob.internalURL);
+          let stream = fs.createReadStream(blob.internalURL);
+          let stat = fs.statSync(blob.internalURL);
           res.setHeader('Content-Length', stat.size);
           res.setHeader('Content-Type', blob.internalMime);
           res.setHeader('Content-Disposition', 'inline;filename="' + blob.documentFileName + '"');

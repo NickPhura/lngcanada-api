@@ -4,11 +4,11 @@
  * This file contains query builder utility functions.
  */
 
-var _ = require('lodash');
-var mongoose = require('mongoose');
+let _ = require('lodash');
+let mongoose = require('mongoose');
 
-var MAX_LIMIT = 1000;
-var DEFAULT_PAGESIZE = 100;
+let MAX_LIMIT = 1000;
+let DEFAULT_PAGESIZE = 100;
 
 /**
  * TODO: populate this documentation
@@ -19,7 +19,7 @@ var DEFAULT_PAGESIZE = 100;
  * @returns
  */
 exports.buildQuery = function(property, values, query) {
-  var objectIDs = [];
+  let objectIDs = [];
   if (_.isArray(values)) {
     _.each(values, function(i) {
       objectIDs.push(mongoose.Types.ObjectId(i));
@@ -44,7 +44,7 @@ exports.buildQuery = function(property, values, query) {
 exports.getSkipLimitParameters = function(pageSize, pageNum) {
   const params = {};
 
-  var ps = DEFAULT_PAGESIZE; // Default
+  let ps = DEFAULT_PAGESIZE; // Default
   if (pageSize && pageSize.value !== undefined) {
     if (pageSize.value > 0) {
       ps = pageSize.value;
@@ -87,8 +87,8 @@ exports.runDataQuery = function(
   preQueryPipelineSteps
 ) {
   return new Promise(function(resolve, reject) {
-    var theModel = mongoose.model(modelType);
-    var projection = {};
+    let theModel = mongoose.model(modelType);
+    let projection = {};
 
     // Don't project unecessary fields if we are only counting objects.
     if (count) {
@@ -96,7 +96,7 @@ exports.runDataQuery = function(
       projection.tags = 1;
     } else {
       // Fields we always return
-      var defaultFields = ['_id', 'code', 'tags'];
+      let defaultFields = ['_id', 'code', 'tags'];
       _.each(defaultFields, function(f) {
         projection[f] = 1;
       });
@@ -107,7 +107,7 @@ exports.runDataQuery = function(
       });
     }
 
-    var aggregations = _.compact([
+    let aggregations = _.compact([
       {
         $match: query
       },

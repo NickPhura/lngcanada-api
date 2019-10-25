@@ -1,13 +1,13 @@
-var _ = require('lodash');
-var qs = require('qs');
-var mongoose = require('mongoose');
-var queryActions = require('../utils/queryActions');
-var queryUtils = require('../utils/queryUtils');
+let _ = require('lodash');
+let qs = require('qs');
+let mongoose = require('mongoose');
+let queryActions = require('../utils/queryActions');
+let queryUtils = require('../utils/queryUtils');
 
-var defaultLog = require('../utils/logger')('record');
+let defaultLog = require('../utils/logger')('record');
 
-var allowedFields = ['_createdBy', 'createdDate', 'description', 'publishDate', 'type'];
-var getSanitizedFields = function(fields) {
+let allowedFields = ['_createdBy', 'createdDate', 'description', 'publishDate', 'type'];
+let getSanitizedFields = function(fields) {
   return _.remove(fields, function(field) {
     return _.indexOf(allowedFields, field) !== -1;
   });
@@ -41,7 +41,7 @@ exports.protectedHead = function(args, res, next) {
   );
 
   // Build match query if on recordId route
-  var query = {};
+  let query = {};
 
   // Add in the default fields to the projection so that the incoming query will work for any selected fields.
   allowedFields.push('_id');
@@ -99,10 +99,10 @@ exports.protectedHead = function(args, res, next) {
  * @returns
  */
 exports.protectedGet = function(args, res, next) {
-  var query = {};
-  var sort = {};
-  var skip = null;
-  var limit = null;
+  let query = {};
+  let sort = {};
+  let skip = null;
+  let limit = null;
 
   defaultLog.info(
     'args.swagger.operation.x-security-scopes:',
@@ -114,7 +114,7 @@ exports.protectedGet = function(args, res, next) {
     query = queryUtils.buildQuery('_id', args.swagger.params.recordId.value, query);
   } else {
     // Could be a bunch of results - enable pagination
-    var processedParameters = queryUtils.getSkipLimitParameters(
+    let processedParameters = queryUtils.getSkipLimitParameters(
       args.swagger.params.pageSize,
       args.swagger.params.pageNum
     );
@@ -122,8 +122,8 @@ exports.protectedGet = function(args, res, next) {
     limit = processedParameters.limit;
 
     if (args.swagger.params.sortBy && args.swagger.params.sortBy.value) {
-      var order_by = args.swagger.params.sortBy.value.charAt(0) == '-' ? -1 : 1;
-      var sort_by = args.swagger.params.sortBy.value.slice(1);
+      let order_by = args.swagger.params.sortBy.value.charAt(0) == '-' ? -1 : 1;
+      let sort_by = args.swagger.params.sortBy.value.slice(1);
       sort[sort_by] = order_by;
     }
 
@@ -171,15 +171,15 @@ exports.protectedGet = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedPost = function(args, res, next) {
-  var obj = args.swagger.params.record.value;
+  let obj = args.swagger.params.record.value;
 
   // Get rid of the fields we don't need/setting later below.
   delete obj.type;
 
   defaultLog.info('Incoming new object:', obj);
 
-  var Record = mongoose.model('Record');
-  var record = new Record(obj);
+  let Record = mongoose.model('Record');
+  let record = new Record(obj);
   // Define security tag defaults
   record.tags = [['sysadmin']];
   record._createdBy = args.swagger.params.auth_payload.preferred_username;
@@ -234,16 +234,16 @@ exports.protectedPost = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedPut = function(args, res, next) {
-  var objId = args.swagger.params.recordId.value;
+  let objId = args.swagger.params.recordId.value;
   defaultLog.info('ObjectID:', args.swagger.params.recordId.value);
 
-  var obj = args.swagger.params.RecordObject.value;
+  let obj = args.swagger.params.RecordObject.value;
   // Strip security tags - these will not be updated on this route.
   delete obj.tags;
   defaultLog.info('Incoming updated object:', obj);
   // TODO sanitize/update audits.
 
-  var Record = require('mongoose').model('Record');
+  let Record = require('mongoose').model('Record');
   Record.findOneAndUpdate({ _id: objId }, obj, { upsert: false, new: true }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -263,10 +263,10 @@ exports.protectedPut = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedDelete = function(args, res, next) {
-  var recordId = args.swagger.params.recordId.value;
+  let recordId = args.swagger.params.recordId.value;
   defaultLog.info('Delete Record:', recordId);
 
-  var Record = mongoose.model('Record');
+  let Record = mongoose.model('Record');
   Record.findOne({ _id: recordId }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -297,10 +297,10 @@ exports.protectedDelete = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedPublish = function(args, res, next) {
-  var objectId = args.swagger.params.recordId.value;
+  let objectId = args.swagger.params.recordId.value;
   defaultLog.info('Publish Record:', objectId);
 
-  var Record = require('mongoose').model('Record');
+  let Record = require('mongoose').model('Record');
   Record.findOne({ _id: objectId }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -321,10 +321,10 @@ exports.protectedPublish = function(args, res, next) {
  * @param {*} next
  */
 exports.protectedUnPublish = function(args, res, next) {
-  var objectId = args.swagger.params.recordId.value;
+  let objectId = args.swagger.params.recordId.value;
   defaultLog.info('UnPublish Record:', objectId);
 
-  var Record = require('mongoose').model('Record');
+  let Record = require('mongoose').model('Record');
   Record.findOne({ _id: objectId }, function(err, o) {
     if (o) {
       defaultLog.debug('o:', JSON.stringify(o));
@@ -337,6 +337,125 @@ exports.protectedUnPublish = function(args, res, next) {
   });
 };
 
+// Public Requests
+
+/**
+ * TODO: populate this documentation
+ *
+ * @param {*} args
+ * @param {*} res
+ * @param {*} next
+ * @returns
+ */
+exports.publicHead = function(args, res, next) {
+  // Build match query if on recordId route
+  let query = {};
+
+  // Add in the default fields to the projection so that the incoming query will work for any selected fields.
+  allowedFields.push('_id');
+  allowedFields.push('tags');
+
+  if (args.swagger.params.recordId) {
+    query = queryUtils.buildQuery('_id', args.swagger.params.recordId.value, query);
+  } else {
+    try {
+      query = addStandardQueryFilters(query, args);
+    } catch (error) {
+      defaultLog.error('record publicHead:', error);
+      return queryActions.sendResponse(res, 400, { error: error.message });
+    }
+  }
+
+  _.assignIn(query, { isDeleted: false });
+
+  queryUtils
+    .runDataQuery(
+      'Record',
+      ['public'],
+      query,
+      null, // Fields
+      null, // sort warmup
+      null, // sort
+      null, // skip
+      1000000, // limit
+      true,
+      null
+    ) // count
+    .then(function(data) {
+      if (!(args.swagger.params.recordId && args.swagger.params.recordId.value) || (data && data.length > 0)) {
+        res.setHeader('x-total-count', data && data.length > 0 ? data[0].total_items : 0);
+        return queryActions.sendResponse(res, 200, data);
+      } else {
+        return queryActions.sendResponse(res, 404, data);
+      }
+    })
+    .catch(function(err) {
+      defaultLog.error('record publicHead runDataQuery:', err);
+      return queryActions.sendResponse(res, 400, err);
+    });
+};
+
+/**
+ * TODO: populate this documentation
+ *
+ * @param {*} args
+ * @param {*} res
+ * @param {*} next
+ * @returns
+ */
+exports.publicGet = function(args, res, next) {
+  // Build match query if on recordId route
+  let query = {};
+  let skip = null;
+  let limit = null;
+  let requestedFields = getSanitizedFields(args.swagger.params.fields.value);
+  // Add in the default fields to the projection so that the incoming query will work for any selected fields.
+  allowedFields.push('_id');
+  allowedFields.push('tags');
+
+  if (args.swagger.params.recordId) {
+    query = queryUtils.buildQuery('_id', args.swagger.params.recordId.value, query);
+  } else {
+    // Could be a bunch of results - enable pagination
+    let processedParameters = queryUtils.getSkipLimitParameters(
+      args.swagger.params.pageSize,
+      args.swagger.params.pageNum
+    );
+    skip = processedParameters.skip;
+    limit = processedParameters.limit;
+
+    try {
+      query = addStandardQueryFilters(query, args);
+    } catch (error) {
+      defaultLog.error('record publicGet:', error);
+      return queryActions.sendResponse(res, 400, { error: error.message });
+    }
+  }
+
+  _.assignIn(query, { isDeleted: false });
+
+  queryUtils
+    .runDataQuery(
+      'Record',
+      ['public'],
+      query,
+      requestedFields, // Fields
+      null, // sort warmup
+      null, // sort
+      skip, // skip
+      limit, // limit
+      false,
+      null
+    ) // count
+    .then(function(data) {
+      return queryActions.sendResponse(res, 200, data);
+    })
+    .catch(function(err) {
+      defaultLog.error('record publicGet runDataQuery:', err);
+      return queryActions.sendResponse(res, 400, err);
+    });
+};
+
 /* eslint-disable no-redeclare */
 /**
  * TODO: populate this documentation
@@ -345,9 +464,9 @@ exports.protectedUnPublish = function(args, res, next) {
  * @param {*} args
  * @returns
  */
-var addStandardQueryFilters = function(query, args) {
+let addStandardQueryFilters = function(query, args) {
   if (args.swagger.params.publishDate && args.swagger.params.publishDate.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.publishDate.value);
+    let queryString = qs.parse(args.swagger.params.publishDate.value);
     if (queryString.since && queryString.until) {
       // Combine queries as logical AND for the dataset.
       _.assignIn(query, {
@@ -385,8 +504,8 @@ var addStandardQueryFilters = function(query, args) {
     _.assignIn(query, { cl_file: args.swagger.params.cl_file.value });
   }
   if (args.swagger.params.purpose && args.swagger.params.purpose.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.purpose.value);
-    var queryArray = [];
+    let queryString = qs.parse(args.swagger.params.purpose.value);
+    let queryArray = [];
     if (Array.isArray(queryString.eq)) {
       queryArray = queryString.eq;
     } else {
@@ -395,8 +514,8 @@ var addStandardQueryFilters = function(query, args) {
     _.assignIn(query, { purpose: { $in: queryArray } });
   }
   if (args.swagger.params.subpurpose && args.swagger.params.subpurpose.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.subpurpose.value);
-    var queryArray = [];
+    let queryString = qs.parse(args.swagger.params.subpurpose.value);
+    let queryArray = [];
     if (Array.isArray(queryString.eq)) {
       queryArray = queryString.eq;
     } else {
@@ -411,8 +530,8 @@ var addStandardQueryFilters = function(query, args) {
     _.assignIn(query, { subtype: args.swagger.params.subtype.value });
   }
   if (args.swagger.params.status && args.swagger.params.status.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.status.value);
-    var queryArray = [];
+    let queryString = qs.parse(args.swagger.params.status.value);
+    let queryArray = [];
     if (Array.isArray(queryString.eq)) {
       queryArray = queryString.eq;
     } else {
@@ -421,8 +540,8 @@ var addStandardQueryFilters = function(query, args) {
     _.assignIn(query, { status: { $in: queryArray } });
   }
   if (args.swagger.params.reason && args.swagger.params.reason.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.reason.value);
-    var queryArray = [];
+    let queryString = qs.parse(args.swagger.params.reason.value);
+    let queryArray = [];
     if (queryString.eq) {
       if (Array.isArray(queryString.eq)) {
         queryArray = queryString.eq;
@@ -446,7 +565,7 @@ var addStandardQueryFilters = function(query, args) {
     _.assignIn(query, { businessUnit: { $eq: args.swagger.params.businessUnit.value.eq } });
   }
   if (args.swagger.params.client && args.swagger.params.client.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.client.value);
+    let queryString = qs.parse(args.swagger.params.client.value);
     if (queryString.text) {
       // This searches for text indexed fields, which client is currently marked as in the record model.
       // If more fields are added to the text index, this logic may need to change as it will then search those fields
@@ -460,7 +579,7 @@ var addStandardQueryFilters = function(query, args) {
     _.assignIn(query, { tenureStage: args.swagger.params.tenureStage.value });
   }
   if (args.swagger.params.areaHectares && args.swagger.params.areaHectares.value !== undefined) {
-    var queryString = qs.parse(args.swagger.params.areaHectares.value);
+    let queryString = qs.parse(args.swagger.params.areaHectares.value);
     if (queryString.gte && queryString.lte) {
       // Combine queries as logical AND to compute a Rnage of values.
       _.assignIn(query, {
@@ -538,7 +657,7 @@ var addStandardQueryFilters = function(query, args) {
     args.swagger.params.statusHistoryEffectiveDate &&
     args.swagger.params.statusHistoryEffectiveDate.value !== undefined
   ) {
-    var queryString = qs.parse(args.swagger.params.statusHistoryEffectiveDate.value);
+    let queryString = qs.parse(args.swagger.params.statusHistoryEffectiveDate.value);
     if (queryString.since && queryString.until) {
       _.assignIn(query, {
         $and: [
@@ -568,122 +687,3 @@ var addStandardQueryFilters = function(query, args) {
   return query;
 };
 /* eslint-enable no-redeclare */
-
-// Public Requests
-
-/**
- * TODO: populate this documentation
- *
- * @param {*} args
- * @param {*} res
- * @param {*} next
- * @returns
- */
-exports.publicHead = function(args, res, next) {
-  // Build match query if on recordId route
-  var query = {};
-
-  // Add in the default fields to the projection so that the incoming query will work for any selected fields.
-  allowedFields.push('_id');
-  allowedFields.push('tags');
-
-  if (args.swagger.params.recordId) {
-    query = queryUtils.buildQuery('_id', args.swagger.params.recordId.value, query);
-  } else {
-    try {
-      query = addStandardQueryFilters(query, args);
-    } catch (error) {
-      defaultLog.error('record publicHead:', error);
-      return queryActions.sendResponse(res, 400, { error: error.message });
-    }
-  }
-
-  _.assignIn(query, { isDeleted: false });
-
-  queryUtils
-    .runDataQuery(
-      'Record',
-      ['public'],
-      query,
-      null, // Fields
-      null, // sort warmup
-      null, // sort
-      null, // skip
-      1000000, // limit
-      true,
-      null
-    ) // count
-    .then(function(data) {
-      if (!(args.swagger.params.recordId && args.swagger.params.recordId.value) || (data && data.length > 0)) {
-        res.setHeader('x-total-count', data && data.length > 0 ? data[0].total_items : 0);
-        return queryActions.sendResponse(res, 200, data);
-      } else {
-        return queryActions.sendResponse(res, 404, data);
-      }
-    })
-    .catch(function(err) {
-      defaultLog.error('record publicHead runDataQuery:', err);
-      return queryActions.sendResponse(res, 400, err);
-    });
-};
-
-/**
- * TODO: populate this documentation
- *
- * @param {*} args
- * @param {*} res
- * @param {*} next
- * @returns
- */
-exports.publicGet = function(args, res, next) {
-  // Build match query if on recordId route
-  var query = {};
-  var skip = null;
-  var limit = null;
-  var requestedFields = getSanitizedFields(args.swagger.params.fields.value);
-  // Add in the default fields to the projection so that the incoming query will work for any selected fields.
-  allowedFields.push('_id');
-  allowedFields.push('tags');
-
-  if (args.swagger.params.recordId) {
-    query = queryUtils.buildQuery('_id', args.swagger.params.recordId.value, query);
-  } else {
-    // Could be a bunch of results - enable pagination
-    var processedParameters = queryUtils.getSkipLimitParameters(
-      args.swagger.params.pageSize,
-      args.swagger.params.pageNum
-    );
-    skip = processedParameters.skip;
-    limit = processedParameters.limit;
-
-    try {
-      query = addStandardQueryFilters(query, args);
-    } catch (error) {
-      defaultLog.error('record publicGet:', error);
-      return queryActions.sendResponse(res, 400, { error: error.message });
-    }
-  }
-
-  _.assignIn(query, { isDeleted: false });
-
-  queryUtils
-    .runDataQuery(
-      'Record',
-      ['public'],
-      query,
-      requestedFields, // Fields
-      null, // sort warmup
-      null, // sort
-      skip, // skip
-      limit, // limit
-      false,
-      null
-    ) // count
-    .then(function(data) {
-      return queryActions.sendResponse(res, 200, data);
-    })
-    .catch(function(err) {
-      defaultLog.error('record publicGet runDataQuery:', err);
-      return queryActions.sendResponse(res, 400, err);
-    });
-};
